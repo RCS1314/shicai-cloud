@@ -138,42 +138,93 @@ function editDist(a, b){
   return dp[m][n];
 }
 
+/* OCR 常见形近/错字归一映射（如 ト→卜，羅→萝） */
+var OCR_MAP = {
+  'ト':'卜','丅':'卜','籮':'萝','羅':'萝','薐':'萝','箉':'笋',
+  '見':'见','貝':'贝','問':'问','間':'间','說':'说','話':'话'
+};
+/* 常见食材别名/易错写法 → 词典标准名 */
+var FOOD_ALIAS = {
+  '胡罗ト':'胡萝卜','胡罗卜':'胡萝卜','胡羅ト':'胡萝卜','胡羅卜':'胡萝卜','胡箩卜':'胡萝卜','葫萝卜':'胡萝卜','胡萝ト':'胡萝卜','胡萝下':'胡萝卜','葫罗ト':'胡萝卜','葫羅ト':'胡萝卜','胡薐ト':'胡萝卜',
+  '白罗卜':'白萝卜','白羅卜':'白萝卜','紅萝卜':'红萝卜','红罗卜':'红萝卜','青羅卜':'青萝卜','水羅卜':'水萝卜',
+  '箩卜':'萝卜','羅卜':'萝卜','罗卜':'萝卜','薐卜':'萝卜',
+  '西红设':'西红柿','西紅柿':'西红柿','番茄':'西红柿','西紅设':'西红柿',
+  '火煺':'火腿','火退':'火腿','四条':'四季豆','4条':'四季豆',
+  '香茹':'香菇','海带缜':'海带结','海带时':'海带结','海带节':'海带结','平果':'苹果','苹果':'苹果'
+};
+function normChar(c){
+  return OCR_MAP[c] || c;
+}
+function normalizeWord(w){
+  return String(w).split('').map(normChar).join('');
+}
+var CN_RE = /^[\u4e00-\u9fa5]+$/; // 纯中文字符串
+
 /* 从 OCR 文本中提取食材：
-   按行/标点切成"单元"（保留名称与数量间的空格），
-   先提取末尾数量，再对名称做词典精确匹配 → 编辑距离<=1 模糊纠错 → 像中文名词则兜底采纳 */
+   核心算法 = 词典最大匹配分词（正向最大匹配）。
+   1) 去空白/标点得到紧凑串，容忍空格炸裂（"胡 萝 卜"、"香 菇"）；
+   2) 扫描：连续中文先用词典(含别名/归一化/编辑距离<=1)匹配最长词，
+      词后紧跟的数字序列(含单位)作为该词的数量；
+   3) 遇乱码字符自动跳过，保证一行多个食材都能被切出来。 */
 function extractFromText(text){
-  var found = {};
-  var unitsRe = /[0-9一二三四五六七八九十两半]+\s*[个枚颗根条只斤两克gGkgKG块包袋勺碗片瓣头束把毫升升罐盒]?/g;
-  var units = String(text||'').split(/[\n\r，,。；;、]+/);
-  units.forEach(function(unit){
-    unit = unit.trim();
-    if(!unit) return;
-    // 提取末尾数量，如 "白萝卜 2根" -> qty="2根"
-    var qty = '';
-    var qm = unit.match(/([0-9一二三四五六七八九十两半]+\s*[个枚颗根条只斤两克gGkgKG块包袋勺碗片瓣头束把毫升升罐盒]?)\s*$/);
-    if(qm){ qty = qm[1].replace(/\s+/g,''); }
-    // 去掉所有数量词，得到名称候选
-    var cand = unit.replace(unitsRe,'').replace(/^[*·•\-—\s]+/,'').replace(/[0-9.]+$/,'').trim();
-    if(!cand) return;
-    // ① 词典精确
-    var name = null;
-    if(DICT.indexOf(cand) > -1){
-      name = cand;
-    } else {
-      // ② 编辑距离<=1 模糊纠错（处理 OCR 单字错误，如"胡萝下"→"胡萝卜"）
+  var t = String(text||'');
+  var found = {};          // name -> {name, qty, weight}
+  var normDict = DICT.map(normalizeWord);
+  var maxL = 6;            // 词典最长词长度上限(充裕)
+  // 紧凑串：去掉所有空白与常见分隔符/噪声字符
+  var compact = normalizeWord(t.replace(/[\s\u3000、，,。；;·•\-—_*:：()（）【】[\]"'"“”]+/g,''));
+  var i = 0, lastName = null;
+  function resolve(piece){
+    if(!piece) return null;
+    if(FOOD_ALIAS[piece]) return FOOD_ALIAS[piece];
+    var np = normalizeWord(piece);
+    if(FOOD_ALIAS[np]) return FOOD_ALIAS[np];
+    var idx = normDict.indexOf(np);
+    if(idx > -1) return DICT[idx];
+    // 编辑距离<=1 模糊纠错：仅限≥2字、且与候选词等长度的纯中文片段，
+    // 避免"白萝卜胡"等跨词片段误配(错位吃字)，也不吞数字/单字
+    if(np.length >= 2 && CN_RE.test(np)){
       var best=null, bestD=99;
-      DICT.forEach(function(food){
-        var d = editDist(cand, food);
-        if(d < bestD){ bestD=d; best=food; }
-      });
-      if(bestD<=1 && best) name = best;
+      for(var j=0;j<normDict.length;j++){
+        if(normDict[j].length !== np.length) continue;
+        var d = editDist(np, normDict[j]);
+        if(d < bestD){ bestD=d; best=DICT[j]; }
+      }
+      if(bestD<=1 && best) return best;
     }
-    // ③ 兜底：不在词典但像中文名词（2~8 字）也采纳
-    if(!name && cand.length>=2 && cand.length<=8 && /^[\u4e00-\u9fa5·]+$/.test(cand)){
-      name = cand;
+    return null;
+  }
+  function commit(name, qty){
+    if(found[name]){ if(qty) found[name].qty = qty; }
+    else { found[name] = {name:name, qty:qty||'', weight:0}; }
+  }
+  while(i < compact.length){
+    var ch = compact.charAt(i);
+    // ① 数字序列 → 数量，归属前一食材
+    if(/[0-9一二三四五六七八九十两半]/.test(ch)){
+      var qm = compact.substr(i).match(/^[0-9一二三四五六七八九十两半]+[个枚颗根条只斤两克gGkgKG块包袋勺碗片瓣头束把毫升升罐盒朵株捆篮]?/);
+      if(qm){
+        var q = qm[0].replace(/\s+/g,'');
+        if(lastName) commit(lastName, q);
+        i += qm[0].length;
+        continue;
+      }
     }
-    if(name && !found[name]) found[name] = {name:name, qty:qty, weight:0};
-  });
+    // ② 中文 → 最长词典匹配
+    var matched=null, matchedLen=0;
+    for(var L=Math.min(maxL, compact.length-i); L>=1; L--){
+      var piece = compact.substr(i, L);
+      var nm = resolve(piece);
+      if(nm){ matched=nm; matchedLen=L; break; }
+    }
+    if(matched){
+      commit(matched, '');
+      lastName = matched;
+      i += matchedLen;
+    } else {
+      i++; // 跳过乱码/单字标点残留
+    }
+  }
   var out=[];
   Object.keys(found).forEach(function(k){ out.push(found[k]); });
   return out;
