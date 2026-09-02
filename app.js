@@ -1,13 +1,16 @@
-/* ============ 食材流体云 app.js ============ */
+/* ============ 食材流体云 app.js（灵动岛版） ============ */
 (function(){
 'use strict';
 
 var $ = function(id){ return document.getElementById(id); };
-var canvas = $('cloud'), ctx = canvas.getContext('2d');
 var statusEl = $('status'), tagsEl = $('tags'), emptyHint = $('emptyHint');
 var metaEl = $('meta'), histEl = $('history');
 var ingredientsTa = $('ingredients');
-var paused = false;
+var cloudEl = $('cloud'), islandText = $('islandText'), islandCount = $('islandCount');
+var resetBtn = $('resetBubbles');
+
+var currentItems = [];   // 当前气泡数据 [{name,qty,weight,done}]
+var doneCount = 0;
 
 /* ---------- 通用食材词典（用于 OCR 后自动提取） ---------- */
 var DICT = [
@@ -90,7 +93,7 @@ async function ocrImage(img){
   return res.data.text;
 }
 
-/* 从 OCR 文本中提取食材（词典匹配 + 提取 数量词） */
+/* 从 OCR 文本中提取食材（词典匹配） */
 function extractFromText(text){
   var found = [];
   DICT.forEach(function(food){
@@ -101,115 +104,89 @@ function extractFromText(text){
   return dedup(found);
 }
 
-/* ---------- 画布：流体云动画 ---------- */
-var particles = [], animId = null;
-var COLORS = ['#5ec8ff','#7dffd4','#ffd27d','#ff9ad5','#b08cff','#8effd0','#ffc1a1'];
-function weightOf(it){
-  // 权重：有克重按克重；有数量按数量*50；都没有权重1
-  if(it.weight>0) return it.weight;
-  var n = chineseNumToInt(it.qty.replace(/[^一二三四五六七八九十两半0-9]/g,''));
-  if(n>0) return n*50;
-  return 1;
-}
+/* ==================================================================
+   灵动岛 · 流体气泡
+   每个食材 = 一个玻璃气泡，轻点 → 打✓ → 泡沫破灭动画 → 消失
+   ================================================================== */
+var BUBBLE_COLORS = ['#5ec8ff','#7dffd4','#ffd27d','#ff9ad5','#b08cff','#8effd0','#ffc1a1'];
 
-function layout(){
-  var dpr = window.devicePixelRatio||1;
-  var w = canvas.clientWidth || 360;
-  var h = Math.max(300, Math.min(520, w*1.1));
-  canvas.width = w*dpr; canvas.height = h*dpr;
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  canvas.style.height = h+'px';
-  return {w:w, h:h};
-}
-
-function buildCloud(items){
-  particles = [];
-  var total = 0;
-  items.forEach(function(it){ total += weightOf(it); });
-  var area = {w:0,h:0};
-  var layer = layout(); area.w = layer.w; area.h = layer.h;
-  emptyHint.style.display = items.length ? 'none' : 'flex';
-  metaEl.textContent = '共 '+items.length+' 种食材';
+function buildBubbles(items){
+  currentItems = items.map(function(it){ return {name:it.name, qty:it.qty, done:false}; });
+  doneCount = 0;
+  cloudEl.innerHTML = '';
+  if(!currentItems.length){
+    var empty = document.createElement('div');
+    empty.className='cloud-empty';
+    empty.innerHTML='🧺<br>还没有内容<br>点击上方「生成流体云」';
+    cloudEl.appendChild(empty);
+    emptyHint.style.display='none';
+  } else {
+    emptyHint.style.display='none';
+    currentItems.forEach(createBubble);
+  }
+  metaEl.textContent = '共 '+currentItems.length+' 种食材';
   renderTags(items);
+  updateIsland();
+  resetBtn.disabled = false;
+}
 
-  var cx = area.w/2, cy = area.h/2, placed = [];
-  items.forEach(function(it){
-    var w = weightOf(it)/total;
-    var size = Math.round(20 + w*46); // 18~66px
-    var x = cx + (Math.random()-0.5)*area.w*0.6;
-    var y = cy + (Math.random()-0.5)*area.h*0.6;
-    var attempt = 0, rad = size*0.55;
-    // 简单防碰撞
-    while(attempt < 300){
-      var ok = placed.every(function(p){
-        var dx = p.x-x, dy=p.y-y;
-        return (dx*dx + dy*dy) > (p.r+rad)*(p.r+rad);
-      });
-      if(ok) break;
-      x = cx + (Math.random()-0.5)*area.w*0.85;
-      y = cy + (Math.random()-0.5)*area.h*0.85;
-      attempt++;
-    }
-    placed.push({x:x,y:y,r:rad});
-    particles.push({
-      name: it.name, qty: it.qty, size: size,
-      x:x, y:y, vx:(Math.random()-0.5)*0.8, vy:(Math.random()-0.5)*0.8,
-      phase: Math.random()*Math.PI*2,
-      color: COLORS[Math.floor(Math.random()*COLORS.length)],
-      weight: w
-    });
+/* 生成单个气泡 DOM */
+function createBubble(it){
+  var b = document.createElement('div');
+  b.className='bubble';
+  var c = BUBBLE_COLORS[Math.floor(Math.random()*BUBBLE_COLORS.length)];
+  // 随机浮动动画参数
+  b.style.setProperty('--fd', (4 + Math.random()*3).toFixed(2)+'s');
+  b.style.setProperty('--fs', (-Math.random()*4).toFixed(2)+'s');
+
+  var check = document.createElement('div');
+  check.className='b-check'; check.textContent='✓';
+
+  var info = document.createElement('div');
+  var nm = document.createElement('div');
+  nm.className='b-name'; nm.textContent = it.name;
+  info.appendChild(nm);
+  if(it.qty){
+    var q = document.createElement('div');
+    q.className='b-qty'; q.textContent = it.qty;
+    info.appendChild(q);
+  }
+
+  b.appendChild(check);
+  b.appendChild(info);
+  b.dataset.name = it.name;
+
+  b.addEventListener('click', function(){
+    if(b.classList.contains('pop')) return;
+    if(b.classList.contains('done')) return; // 已确认，不再重复计
+    b.classList.add('done');
+    it.done = true;
+    doneCount++;
+    updateIsland();
+    // 0.55s 后播放泡沫破灭并移除
+    setTimeout(function(){
+      b.classList.add('pop');
+      setTimeout(function(){ b.remove(); }, 560);
+    }, 450);
   });
-  stopAnim(); startAnim();
+  cloudEl.appendChild(b);
 }
 
-var t0 = null;
-function startAnim(){
-  t0 = performance.now();
-  animId = requestAnimationFrame(draw);
-}
-function stopAnim(){
-  if(animId){ cancelAnimationFrame(animId); animId=null; }
-}
-
-function draw(now){
-  var dpr = window.devicePixelRatio||1;
-  var w = canvas.width/dpr, h = canvas.height/dpr;
-  ctx.clearRect(0,0,w,h);
-  // 背景流体光斑
-  var t = (now-t0)/1000;
-  var g = ctx.createRadialGradient(w*0.3+Math.sin(t*0.3)*30, h*0.25+Math.cos(t*0.25)*20, 10, w*0.3+Math.sin(t*0.3)*30, h*0.25, w*0.6);
-  g.addColorStop(0,'rgba(94,200,255,0.10)');
-  g.addColorStop(1,'rgba(125,255,212,0)');
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-
-  particles.forEach(function(p){
-    // 流体漂移（正弦扰动）
-    p.x += p.vx*0.6 + Math.sin(t*0.8 + p.phase)*0.5;
-    p.y += p.vy*0.6 + Math.cos(t*0.6 + p.phase*1.3)*0.5;
-    if(p.x<-p.size){p.x=w+p.size;} if(p.x>w+p.size){p.x=-p.size;}
-    if(p.y<-p.size){p.y=h+p.size;} if(p.y>h+p.size){p.y=-p.size;}
-
-    // 呼吸脉动
-    var breath = 1 + Math.sin(t*1.6 + p.phase)*0.04;
-    var fs = Math.round(p.size*breath);
-
-    ctx.save();
-    ctx.shadowColor = p.color; ctx.shadowBlur = 14;
-    ctx.font = '700 '+fs+'px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle = p.color;
-    ctx.fillText(p.name, p.x, p.y);
-    ctx.shadowBlur=0;
-
-    // 数量小标
-    if(p.qty){
-      ctx.font = '500 '+(Math.max(11, fs*0.32))+'px "PingFang SC",sans-serif';
-      ctx.fillStyle='rgba(234,242,255,.75)';
-      ctx.fillText(p.qty, p.x, p.y + fs*0.66);
-    }
-    ctx.restore();
-  });
-  if(!paused) animId = requestAnimationFrame(draw);
+/* 灵动岛状态 */
+function updateIsland(){
+  var total = currentItems.length;
+  islandCount.textContent = doneCount + '/' + total;
+  if(!total){
+    islandText.textContent = '准备食材';
+  } else if(doneCount >= total){
+    islandText.textContent = '全部准备好了！';
+    islandCount.style.color = '#06301d';
+    islandCount.style.background = '#3dffa8';
+  } else {
+    islandText.textContent = (doneCount ? '已备好 '+doneCount+' 种' : '准备食材');
+    islandCount.style.color = '';
+    islandCount.style.background = '';
+  }
 }
 
 /* ---------- tags 展示 ---------- */
@@ -232,7 +209,7 @@ function renderTags(items){
 function refreshTextFromItems(items){
   ingredientsTa.value = items.map(function(it){return it.name+(it.qty?' '+it.qty:'');}).join('、');
   renderTags(items);
-  buildCloud(items);
+  buildBubbles(items);
 }
 
 /* ---------- 图片选择与 OCR ---------- */
@@ -266,7 +243,7 @@ function handleImage(file){
       var merged = Object.keys(map).map(function(k){ return map[k]; });
       ingredientsTa.value = merged.map(function(it){return it.name+(it.qty?' '+it.qty:'');}).join('、');
       renderTags(merged);
-      buildCloud(merged);
+      buildBubbles(merged);
       saveHistory(merged);
     }catch(e){
       statusEl.textContent='识别失败：'+e.message;
@@ -289,7 +266,7 @@ function renderHistory(){
   var arr = JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
   if(!arr.length){ histEl.innerHTML='<p class="hint">暂无历史记录</p>'; return; }
   histEl.innerHTML='';
-  arr.forEach(function(h, idx){
+  arr.forEach(function(h){
     var d = document.createElement('div');
     d.style.cssText='padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;';
     var t = document.createElement('div'); t.style.color='var(--sub)'; t.style.fontSize='11px';
@@ -310,35 +287,33 @@ $('gallery-input').addEventListener('change', function(e){ handleImage(e.target.
 $('generate').addEventListener('click', function(){
   var items = parseIngredients(ingredientsTa.value);
   if(!items.length){ statusEl.textContent='请先输入或识别食材'; statusEl.className='status err'; return; }
-  buildCloud(items);
+  buildBubbles(items);
   saveHistory(items);
-  statusEl.textContent='已生成流体云';
+  statusEl.textContent='已生成灵动岛气泡';
   statusEl.className='status done';
 });
 $('clearAll').addEventListener('click', function(){
   ingredientsTa.value=''; tagsEl.innerHTML='';
-  particles=[]; stopAnim();
-  var l=layout(); ctx.clearRect(0,0,l.w,l.h);
-  emptyHint.style.display='flex';
+  currentItems=[]; doneCount=0;
+  cloudEl.innerHTML='';
+  var empty = document.createElement('div');
+  empty.className='cloud-empty';
+  empty.innerHTML='🧺<br>还没有内容<br>点击上方「生成流体云」';
+  cloudEl.appendChild(empty);
   metaEl.textContent='共 0 种食材';
+  resetBtn.disabled = true;
+  updateIsland();
 });
-$('download').addEventListener('click', function(){
-  var a=document.createElement('a');
-  a.download='食材准备清单.png';
-  a.href = canvas.toDataURL('image/png');
-  a.click();
+resetBtn.addEventListener('click', function(){
+  // 重置进度：恢复所有气泡为未勾选
+  currentItems.forEach(function(it){ it.done = false; });
+  doneCount = 0;
+  var els = cloudEl.querySelectorAll('.bubble');
+  els.forEach(function(b){ b.classList.remove('done','pop'); });
+  updateIsland();
 });
-// 长按暂停
-var pressT;
-canvas.addEventListener('touchstart', function(){ pressT=setTimeout(function(){ paused=!paused; statusEl.textContent = paused?'动画已暂停':'动画已继续'; }, 600); }, {passive:true});
-canvas.addEventListener('touchend', function(){ clearTimeout(pressT); }, {passive:true});
-canvas.addEventListener('touchmove', function(){ clearTimeout(pressT); }, {passive:true});
-canvas.addEventListener('mousedown', function(){ pressT=setTimeout(function(){ paused=!paused; }, 600); });
-canvas.addEventListener('mouseup', function(){ clearTimeout(pressT); });
 
-/* 初始布局 */
-window.addEventListener('resize', function(){ if(particles.length) buildCloud(particles.map(function(p){return {name:p.name,qty:p.qty};})); });
-layout();
+/* 初始 */
 renderHistory();
 
 })();
