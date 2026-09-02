@@ -61,7 +61,7 @@ textarea::placeholder{color:#6b7f9c;}
 
 /* ============ 灵动岛舞台 ============ */
 .stage{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);
-  min-height:420px;
+  min-height:120px;
   background:
     radial-gradient(500px 300px at 20% 10%, rgba(94,200,255,.16), transparent 60%),
     radial-gradient(420px 320px at 85% 85%, rgba(125,255,212,.10), transparent 60%),
@@ -92,53 +92,60 @@ textarea::placeholder{color:#6b7f9c;}
   background-size:200% 100%;animation:islandShift 3.5s linear infinite;}
 @keyframes islandShift{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 
-/* 气泡云区 */
-.cloud{position:relative;z-index:2;padding:12px 10px 20px;display:flex;flex-wrap:wrap;gap:12px;align-content:flex-start;}
-.cloud-empty{width:100%;text-align:center;color:#55617e;font-size:14px;line-height:1.9;padding:70px 10px;}
+/* 食材清单（单行：名称 数量 方框） */
+.list{position:relative;z-index:2;padding:12px 10px 20px;}
+.list-empty{width:100%;text-align:center;color:#55617e;font-size:14px;line-height:1.9;padding:50px 10px;}
 
-/* 食材气泡（灵动岛玻璃质感） */
-.bubble{position:relative;cursor:pointer;user-select:none;
-  background:linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
-  border:1px solid rgba(255,255,255,.22);
+.row-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;
+  background:linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.05));
+  border:1px solid rgba(255,255,255,.20);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  border-radius:22px;padding:12px 16px 12px 14px;min-width:96px;
-  display:flex;align-items:center;gap:8px;transition:transform .12s ease, box-shadow .2s;
-  box-shadow:0 4px 20px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.18);
-  animation:floatUp var(--fd) ease-in-out var(--fs) infinite;}
-@keyframes floatUp{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-.bubble:active{transform:scale(.96);}
-/* 高亮光斑 */
-.bubble::before{content:"";position:absolute;top:6px;left:14px;width:26px;height:12px;
-  background:rgba(255,255,255,.35);border-radius:50%;filter:blur(4px);}
-.bubble .b-name{font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);}
-.bubble .b-qty{font-size:11.5px;color:rgba(234,242,255,.78);margin-top:2px;}
-/* 勾选圆框 */
-.b-check{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
-  flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;
-  transition:.18s;background:rgba(255,255,255,.06);}
-/* 已打勾样式 */
-.bubble.done{background:linear-gradient(145deg, rgba(61,255,168,.30), rgba(61,255,168,.08));
-  border-color:var(--ok);}
-.bubble.done .b-check{border-color:var(--ok);background:var(--ok);color:#06301d;animation:checkPop .3s ease;}
+  border-radius:16px;padding:10px 12px;margin-bottom:10px;
+  box-shadow:0 3px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.15);
+  transition:border-color .2s;cursor:pointer;}
+.row-item::before{content:"";position:absolute;top:5px;left:20px;width:34px;height:9px;
+  background:rgba(255,255,255,.28);border-radius:50%;filter:blur(3px);pointer-events:none;}
+.row-item:active{transform:scale(.99);}
+
+.r-name{flex:0 0 auto;min-width:64px;font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+.r-qty{flex:1;margin:0 4px;min-width:0;}
+.qty-input{width:100%;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.18);
+  color:#fff;border-radius:10px;padding:8px 10px;font-size:14px;text-align:center;outline:none;
+  font-family:inherit;-webkit-appearance:none;}
+.qty-input:focus{border-color:var(--accent);background:rgba(0,0,0,.45);}
+.qty-input::placeholder{color:#6b7f9c;font-size:12.5px;}
+
+/* 方形勾选框 */
+.box{width:28px;height:28px;border-radius:9px;border:2px solid rgba(255,255,255,.55);
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:17px;font-weight:700;color:transparent;
+  background:rgba(255,255,255,.07);transition:.18s;cursor:pointer;}
+
+/* 已打勾整行 */
+.row-item.done{border-color:var(--ok);
+  background:linear-gradient(145deg, rgba(61,255,168,.22), rgba(61,255,168,.06));}
+.row-item.done .box{border-color:var(--ok);background:var(--ok);color:#06301d;animation:checkPop .3s ease;}
+.row-item.done .r-name{opacity:.75;}
 @keyframes checkPop{0%{transform:scale(.4);}70%{transform:scale(1.25);}100%{transform:scale(1);}}
-/* 泡沫破灭动画（应用后播放） */
-.bubble.pop{pointer-events:none;animation:popKf .55s ease-in forwards;}
-@keyframes popKf{
+
+/* 整行泡沫破灭消失 */
+.row-item.pop{pointer-events:none;animation:rowPop .55s ease-in forwards;}
+@keyframes rowPop{
   0%{opacity:1;transform:scale(1);filter:blur(0);}
-  35%{opacity:1;transform:scale(1.12) rotate(2deg);filter:blur(1px);}
-  100%{opacity:0;transform:translateY(-46px) scale(.15) rotate(10deg);filter:blur(8px);}
+  35%{opacity:1;transform:scale(1.04);filter:blur(1px);}
+  100%{opacity:0;transform:translateY(-34px) scale(.6);filter:blur(7px);}
 }
-/* 破灭时的小水珠飞散 */
-.bubble.pop::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;
+.row-item.pop::after{content:"";position:absolute;left:70%;top:50%;width:10px;height:10px;border-radius:50%;
   background:radial-gradient(circle,var(--accent2),transparent 70%);
   animation:dropKf .5s ease-out forwards;}
 @keyframes dropKf{
   0%{opacity:1;transform:translate(-50%,-50%) scale(1);}
-  100%{opacity:0;transform:translate(calc(-50% + 34px), calc(-50% - 30px)) scale(.2);}
+  100%{opacity:0;transform:translate(calc(-50% + 40px), calc(-50% - 34px)) scale(.2);}
 }
 
 .meta{font-size:12px;color:var(--sub);margin-top:10px;display:flex;justify-content:space-between;align-items:center;}
 .meta button{background:none;border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;}
+.meta button:disabled{opacity:.35;cursor:default;}
 .hint{font-size:12px;color:var(--sub);line-height:1.7;margin:6px 0 0;}
 input[type=file]{display:none;}
 </style>
@@ -188,16 +195,16 @@ input[type=file]{display:none;}
         <span class="island-count" id="islandCount">0/0</span>
         <div class="island-wave"></div>
       </div>
-      <div class="cloud" id="cloud">
-        <div class="cloud-empty" id="emptyHint">🧺<br>还没有内容<br>点击上方「生成流体云」</div>
+      <div class="list" id="list">
+        <div class="list-empty" id="emptyHint">🧺<br>还没有内容<br>点击上方「生成流体云」</div>
       </div>
     </div>
     <div class="meta">
       <span id="meta">共 0 种食材</span>
-      <button id="resetBubbles" disabled>重置进度</button>
+      <button id="resetBtn" disabled>重置进度</button>
     </div>
     <div class="legend" style="font-size:11px;color:#7c8faa;margin-top:8px;">
-      轻点食材气泡 → 打上 ✓ → 该食材像泡沫一样破灭消失，自动计入已完成。
+      每行：食材名称 · 数量（可点修改）· 方框。点方框打 ✓ 后该行像泡沫一样消失，自动计入已完成。
     </div>
   </div>
 
