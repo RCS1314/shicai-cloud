@@ -1,0 +1,14 @@
+{
+  "name": "食材流体云",
+  "short_name": "食材云",
+  "description": "拍照/相册识别食材，生成流体云食材准备页面（单机版）",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0e1a2b",
+  "theme_color": "#0e1a2b",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
