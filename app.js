@@ -400,18 +400,20 @@ function renderHistory(histEl, emptyMsg){
         moved=false;
       }
     });
-    /* 滑动后抑制触发跳转的 click */
+    /* 滑动后抑制触发跳转的 click（点击删除按钮除外） */
     sw.addEventListener('click', function(e){
-      if(suppressClick){ e.preventDefault(); e.stopPropagation(); suppressClick=false; }
+      if(suppressClick && !delBtn.contains(e.target)){ e.preventDefault(); e.stopPropagation(); }
+      suppressClick=false;
     }, true);
 
     delBtn.addEventListener('click', function(){
       var a = getHistory();
-      var i = a.indexOf(h);
-      if(i>-1){ a.splice(i,1); setJSON(keys.history, a); }
-      renderHistory(histEl, emptyMsg);
-      var st = document.getElementById('status');
-      if(st){ st.className='status done'; st.textContent='已删除该条历史记录'; }
+      if(a[idx]){
+        a.splice(idx,1); setJSON(keys.history, a);
+        renderHistory(histEl, emptyMsg);
+        var st = document.getElementById('status');
+        if(st){ st.className='status done'; st.textContent='已删除该条历史记录'; }
+      }
     });
   });
 }
@@ -671,8 +673,9 @@ function initShow(){
     row.appendChild(name); row.appendChild(qWrap); row.appendChild(box);
     row.addEventListener('click', function(){
       if(row.classList.contains('done')) return;
-      row.classList.add('done');
+      row.classList.add('done','pop');
       currentItems[idx].done=true; doneCount++; save(); updateIsland();
+      setTimeout(function(){ if(row.parentNode){ row.parentNode.removeChild(row); } }, 560);
     });
     listEl.appendChild(row);
   }
