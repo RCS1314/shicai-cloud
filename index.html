@@ -5,234 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0e1226">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>食材流体云 · 灵动岛</title>
+<title>食材流体云 · 首页</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
-<style>
-:root{
-  --bg:#0e1226; --panel:rgba(255,255,255,.05); --line:rgba(255,255,255,.12);
-  --txt:#eaf2ff; --sub:#9fb3d1; --accent:#5ec8ff; --accent2:#7dffd4; --accent3:#ffd27d;
-  --danger:#ff7a7a; --ok:#3dffa8; --radius:18px;
-}
-*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html,body{margin:0;padding:0;}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-  background:
-    radial-gradient(1200px 700px at 85% -10%, rgba(94,200,255,.14), transparent 60%),
-    radial-gradient(900px 600px at 0% 115%, rgba(125,255,212,.10), transparent 55%),
-    radial-gradient(700px 500px at 100% 60%, rgba(140,90,255,.12), transparent 60%),
-    var(--bg);
-  color:var(--txt); min-height:100vh;
-}
-.wrap{max-width:560px;margin:0 auto;padding:16px 16px 40px;}
-header{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 14px;}
-header h1{margin:0;font-size:22px;font-weight:700;letter-spacing:1px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
-  -webkit-background-clip:text;background-clip:text;color:transparent;}
-header .pwa{margin:0;font-size:11px;color:var(--sub);}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:16px;margin-bottom:14px;backdrop-filter:blur(10px);}
-.card h2{margin:0 0 12px;font-size:15px;color:var(--sub);font-weight:600;letter-spacing:.5px;}
-.row{display:flex;gap:10px;flex-wrap:wrap;}
-.btn{flex:1;min-width:110px;border:1px solid var(--line);background:rgba(255,255,255,.04);
-  color:var(--txt);border-radius:12px;padding:13px 10px;font-size:14px;text-align:center;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;gap:4px;transition:.2s;}
-.btn .ico{font-size:20px;}
-.btn:hover,.btn:active{background:rgba(255,255,255,.1);}
-.btn.primary{background:linear-gradient(135deg,var(--accent),#6f7bff);border:none;color:#052033;font-weight:700;}
-.btn.primary:disabled{opacity:.5;}
-.btn.ghost{flex:0 0 auto;padding:13px 18px;font-size:13px;flex-direction:row;}
-textarea{width:100%;min-height:96px;background:rgba(0,0,0,.25);color:var(--txt);
-  border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;resize:vertical;
-  font-family:inherit;line-height:1.6;}
-textarea::placeholder{color:#6b7f9c;}
-#preview{display:none;margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--line);}
-#preview img{width:100%;display:block;}
-.status{font-size:13px;color:var(--sub);margin-top:10px;min-height:20px;line-height:1.5;}
-.status.done{color:var(--accent2);}
-.status.err{color:var(--danger);}
-.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-.tag{background:rgba(94,200,255,.12);border:1px solid rgba(94,200,255,.3);color:var(--accent);
-  border-radius:20px;padding:4px 12px;font-size:12.5px;display:flex;align-items:center;gap:6px;}
-.tag button{background:none;border:none;color:var(--danger);font-size:15px;cursor:pointer;padding:0 2px;}
-.chip{background:rgba(125,255,212,.1);border:1px solid rgba(125,255,212,.35);color:var(--accent2);
-  border-radius:20px;padding:5px 12px;font-size:12.5px;margin:0 8px 6px 0;display:inline-block;}
-
-/* ============ 灵动岛舞台 ============ */
-.stage{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);
-  min-height:120px;
-  background:
-    radial-gradient(500px 300px at 20% 10%, rgba(94,200,255,.16), transparent 60%),
-    radial-gradient(420px 320px at 85% 85%, rgba(125,255,212,.10), transparent 60%),
-    radial-gradient(300px 260px at 70% 15%, rgba(255,122,122,.06), transparent 60%),
-    #0a0f22;}
-/* 流体光波背景 */
-.stage::before{content:"";position:absolute;inset:-40%;pointer-events:none;
-  background:
-    radial-gradient(60% 40% at 30% 40%, rgba(94,200,255,.10), transparent 70%),
-    radial-gradient(50% 35% at 70% 60%, rgba(125,255,212,.10), transparent 70%);
-  animation:flow 12s ease-in-out infinite;}
-@keyframes flow{
-  0%,100%{transform:translate(0,0) scale(1);}
-  33%{transform:translate(3%,-3%) scale(1.05);}
-  66%{transform:translate(-3%,2%) scale(.98);}
-}
-
-/* 灵动岛 */
-.island{position:relative;z-index:3;margin:14px auto 4px;width:210px;height:34px;
-  border-radius:20px;background:#000;box-shadow:0 2px 18px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06);
-  display:flex;align-items:center;justify-content:center;gap:8px;overflow:hidden;}
-.island-ico{font-size:15px;}
-.island-text{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;}
-.island-count{font-size:11px;color:var(--accent2);background:rgba(125,255,212,.14);
-  border-radius:10px;padding:1px 8px;}
-.island-wave{position:absolute;inset:0;z-index:-1;opacity:.5;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(94,200,255,.5),transparent);
-  background-size:200% 100%;animation:islandShift 3.5s linear infinite;}
-@keyframes islandShift{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-
-/* 食材清单（单行：名称 数量 方框） */
-.list{position:relative;z-index:2;padding:12px 10px 20px;}
-.list-empty{width:100%;text-align:center;color:#55617e;font-size:14px;line-height:1.9;padding:50px 10px;}
-
-.row-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;
-  background:linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.05));
-  border:1px solid rgba(255,255,255,.20);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  border-radius:16px;padding:10px 12px;margin-bottom:10px;
-  box-shadow:0 3px 14px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.15);
-  transition:border-color .2s;cursor:pointer;}
-.row-item::before{content:"";position:absolute;top:5px;left:20px;width:34px;height:9px;
-  background:rgba(255,255,255,.28);border-radius:50%;filter:blur(3px);pointer-events:none;}
-.row-item:active{transform:scale(.99);}
-
-.r-name{flex:0 0 auto;min-width:64px;font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);}
-.r-qty{flex:1;margin:0 4px;min-width:0;}
-.qty-input{width:100%;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.18);
-  color:#fff;border-radius:10px;padding:8px 10px;font-size:14px;text-align:center;outline:none;
-  font-family:inherit;-webkit-appearance:none;}
-.qty-input:focus{border-color:var(--accent);background:rgba(0,0,0,.45);}
-.qty-input::placeholder{color:#6b7f9c;font-size:12.5px;}
-
-/* 方形勾选框 */
-.box{width:28px;height:28px;border-radius:9px;border:2px solid rgba(255,255,255,.55);
-  flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-  font-size:17px;font-weight:700;color:transparent;
-  background:rgba(255,255,255,.07);transition:.18s;cursor:pointer;}
-
-/* 已打勾整行 */
-.row-item.done{border-color:var(--ok);
-  background:linear-gradient(145deg, rgba(61,255,168,.22), rgba(61,255,168,.06));}
-.row-item.done .box{border-color:var(--ok);background:var(--ok);color:#06301d;animation:checkPop .3s ease;}
-.row-item.done .r-name{opacity:.75;}
-@keyframes checkPop{0%{transform:scale(.4);}70%{transform:scale(1.25);}100%{transform:scale(1);}}
-
-/* 整行泡沫破灭消失 */
-.row-item.pop{pointer-events:none;animation:rowPop .55s ease-in forwards;}
-@keyframes rowPop{
-  0%{opacity:1;transform:scale(1);filter:blur(0);}
-  35%{opacity:1;transform:scale(1.04);filter:blur(1px);}
-  100%{opacity:0;transform:translateY(-34px) scale(.6);filter:blur(7px);}
-}
-.row-item.pop::after{content:"";position:absolute;left:70%;top:50%;width:10px;height:10px;border-radius:50%;
-  background:radial-gradient(circle,var(--accent2),transparent 70%);
-  animation:dropKf .5s ease-out forwards;}
-@keyframes dropKf{
-  0%{opacity:1;transform:translate(-50%,-50%) scale(1);}
-  100%{opacity:0;transform:translate(calc(-50% + 40px), calc(-50% - 34px)) scale(.2);}
-}
-
-.meta{font-size:12px;color:var(--sub);margin-top:10px;display:flex;justify-content:space-between;align-items:center;}
-.meta button{background:none;border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;}
-.meta button:disabled{opacity:.35;cursor:default;}
-.hint{font-size:12px;color:var(--sub);line-height:1.7;margin:6px 0 0;}
-input[type=file]{display:none;}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>食材流体云</h1>
-    <p class="pwa">灵动岛 · 单机版</p>
+    <div class="ht">
+      <h1>食材流体云</h1>
+      <p class="sub">灵动岛 · 单机版 · 三步走</p>
+    </div>
   </header>
 
-  <!-- 输入区 -->
-  <div class="card">
-    <h2>① 获取食材信息</h2>
-    <div class="row">
-      <label class="btn">
-        <span class="ico">📷</span><span>拍照识别</span>
-        <input type="file" accept="image/*" capture="environment" id="camera-input">
-      </label>
-      <label class="btn">
-        <span class="ico">🖼️</span><span>从相册选图</span>
-        <input type="file" accept="image/*" id="gallery-input">
-      </label>
-    </div>
-    <div id="preview"></div>
-    <div class="status" id="status">支持拍照 / 相册选图（含食谱、采购单、手写清单截图），自动识别并提取食材。</div>
+  <!-- Hero -->
+  <div class="hero">
+    <span class="logo">🧺</span>
+    <h2>准备了什么，一眼看清</h2>
+    <p>拍照识别食材 → 核对生成清单 → 灵动岛边备菜边打勾，做完一行消失一行。</p>
   </div>
 
-  <!-- 手动输入 -->
-  <div class="card">
-    <h2>② 食材清单（可手动调整）</h2>
-    <textarea id="ingredients" placeholder="例如：红萝卜 1 个、鸡蛋 3 个、五花肉 300g、葱 1 根、大蒜、生抽、盐"></textarea>
-    <div class="row" style="margin-top:10px;flex-wrap:nowrap;">
-      <button class="btn primary" id="generate">生成流体云</button>
-      <button class="btn" id="clearAll">清空</button>
+  <!-- 继续未完成 -->
+  <a href="show.html" class="card home-card" id="continueCard" style="text-decoration:none;display:none;">
+    <div class="hc-ico">▶️</div>
+    <div>
+      <h3>继续准备</h3>
+      <p id="contInfo"></p>
     </div>
-    <div class="tags" id="tags"></div>
+    <span class="hc-go">›</span>
+  </a>
+
+  <!-- 三个步骤 -->
+  <div class="steps" style="padding:8px 0 14px;">
+    <div class="step active"><span class="dot">1</span>识别</div>
+    <div class="step-line"></div>
+    <div class="step"><span class="dot">2</span>生成</div>
+    <div class="step-line"></div>
+    <div class="step"><span class="dot">3</span>展示</div>
   </div>
 
-  <!-- 灵动岛流体云 -->
-  <div class="card">
-    <h2>③ 食材准备页 · 灵动岛</h2>
-    <div class="stage">
-      <div class="island">
-        <span class="island-ico">🧺</span>
-        <span class="island-text" id="islandText">准备食材</span>
-        <span class="island-count" id="islandCount">0/0</span>
-        <div class="island-wave"></div>
-      </div>
-      <div class="list" id="list">
-        <div class="list-empty" id="emptyHint">🧺<br>还没有内容<br>点击上方「生成流体云」</div>
-      </div>
+  <a href="scan.html" class="card home-card" style="text-decoration:none;">
+    <div class="hc-ico" style="background:rgba(94,200,255,.12);border-color:rgba(94,200,255,.3);">📷</div>
+    <div>
+      <h3>识别页面</h3>
+      <p>拍照 / 相册选图，离线 OCR 自动提取食材</p>
     </div>
-    <div class="meta">
-      <span id="meta">共 0 种食材</span>
-      <button id="resetBtn" disabled>重置进度</button>
-    </div>
-    <div class="legend" style="font-size:11px;color:#7c8faa;margin-top:8px;">
-      每行：食材名称 · 数量（可点修改）· 方框。点方框打 ✓ 后该行像泡沫一样消失，自动计入已完成。
-    </div>
-  </div>
+    <span class="hc-go">›</span>
+  </a>
 
-  <!-- 历史记录 -->
-  <div class="card" id="historyCard">
-    <h2>④ 历史记录</h2>
-    <div id="history"></div>
-    <p class="hint">每次生成会自动存入本机，下次打开仍在。识别文字仅供辅助，请以实际食材为准。</p>
+  <a href="edit.html" class="card home-card" style="text-decoration:none;">
+    <div class="hc-ico" style="background:rgba(125,255,212,.1);border-color:rgba(125,255,212,.35);">✏️</div>
+    <div>
+      <h3>生成页面</h3>
+      <p>核对清单、改数量、增删食材，一键生成</p>
+    </div>
+    <span class="hc-go">›</span>
+  </a>
+
+  <a href="show.html" class="card home-card" style="text-decoration:none;">
+    <div class="hc-ico" style="background:rgba(255,210,125,.1);border-color:rgba(255,210,125,.35);">🌀</div>
+    <div>
+      <h3>展示页面</h3>
+      <p>灵动岛食材清单，打勾一行泡沫消失</p>
+    </div>
+    <span class="hc-go">›</span>
+  </a>
+
+  <!-- 历史 -->
+  <div class="card home-note">
+    <h4>历史上次清单</h4>
+    <div id="homeHistory"></div>
   </div>
 </div>
 
-<!-- OCR 库（本地优先，失败自动切备用源） -->
-<script src="lib/tesseract.min.js"></script>
-<script>
-(function(){
-  if(!window.Tesseract){
-    var s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload=function(){console.log('OCR loaded(remote)');};
-    document.head.appendChild(s);
-  }
-})();
-</script>
+<!-- 底部导航 -->
+<nav class="tabbar"><div class="tb-in">
+  <a data-tab="home" href="index.html"><span class="ti">🏠</span>首页</a>
+  <a data-tab="scan" href="scan.html"><span class="ti">📷</span>识别</a>
+  <a data-tab="edit" href="edit.html"><span class="ti">✏️</span>生成</a>
+  <a data-tab="show" href="show.html"><span class="ti">🌀</span>展示</a>
+</div></nav>
+
 <script src="app.js"></script>
+<script>FC.initHome();</script>
 <script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(function(){});
-}
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
 </body>
 </html>
