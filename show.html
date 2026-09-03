@@ -43,11 +43,24 @@
       <span id="meta">共 0 种食材</span>
       <button id="resetBtn" disabled>重置进度</button>
     </div>
-    <div class="legend">每行：食材名称 · 数量（可修改）· 方框。点方框打 ✓ 后该行像泡沫一样消失，自动计入已完成。</div>
+    <div class="legend">每行：食材名称 · 数量（可修改）· 方框。点方框打 ✓ 标记完成（行保留），全部备好后弹出「出发」页。</div>
     <div class="status" id="status"></div>
     <div class="foot-actions">
       <a href="edit.html" class="big-btn sec" style="text-decoration:none;">‹ 回生成页</a>
       <button class="big-btn" id="addMore" onclick="location.href='scan.html'">＋ 加食材</button>
+    </div>
+  </div>
+</div>
+
+<!-- 全部备好：出发提示框 -->
+<div class="finish-overlay" id="finishOv" hidden>
+  <div class="finish-card">
+    <div class="finish-emoji">🎉</div>
+    <div class="finish-title">GO GO GO 出发了!</div>
+    <div class="finish-sub">所有食材都已备好啦，开火下锅吧～</div>
+    <div class="finish-actions">
+      <button class="big-btn sec" id="finishReset" type="button">再打一遍</button>
+      <button class="big-btn" id="finishHome" type="button">回首页 ›</button>
     </div>
   </div>
 </div>
