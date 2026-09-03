@@ -1,6 +1,6 @@
 {
-  "name": "食材流体云",
-  "short_name": "食材云",
+  "name": "流体小票",
+  "short_name": "流体小票",
   "description": "拍照/相册识别食材，生成流体云食材准备页面（单机版）",
   "start_url": "./index.html",
   "display": "standalone",
