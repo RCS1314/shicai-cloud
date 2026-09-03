@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1226">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>生成清单 · 食材流体云</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="ht">
+      <h1>生成页面</h1>
+      <p class="sub">核对清单 → 生成流体云</p>
+    </div>
+  </header>
+
+  <!-- 步骤条 -->
+  <div class="steps">
+    <div class="step done"><span class="dot">✓</span>识别</div>
+    <div class="step-line"></div>
+    <div class="step active"><span class="dot">2</span>生成</div>
+    <div class="step-line"></div>
+    <div class="step"><span class="dot">3</span>展示</div>
+  </div>
+
+  <!-- 手动输入 -->
+  <div class="card">
+    <h2>① 食材清单（可手动输入 / 粘贴）</h2>
+    <textarea id="ingredients" placeholder="例如：红萝卜 1 个、鸡蛋 3 个、五花肉 300g、葱 1 根、大蒜"></textarea>
+    <div class="foot-actions" style="margin-top:10px;">
+      <button class="btn sm" id="parseBtn" style="flex:1;">解析文本</button>
+      <button class="btn sm" id="candBtn" style="flex:1;">✓ 引入识别结果</button>
+      <button class="btn sm" id="clearBtn" style="flex:1;">清空</button>
+    </div>
+  </div>
+
+  <!-- 清单编辑 -->
+  <div class="card">
+    <h2>② 待生成清单（共 <span id="count" style="color:var(--accent2);">0</span> 种）</h2>
+    <div id="editList"></div>
+    <div class="status" id="status"></div>
+    <div class="foot-actions">
+      <button class="big-btn" id="generateBtn" disabled>生成流体云 ›</button>
+    </div>
+    <p class="hint" style="margin-top:10px;">每行：食材名 · 数量（可点击修改）· × 删除。确认后进入展示页。</p>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<nav class="tabbar"><div class="tb-in">
+  <a data-tab="home" href="index.html"><span class="ti">🏠</span>首页</a>
+  <a data-tab="scan" href="scan.html"><span class="ti">📷</span>识别</a>
+  <a data-tab="edit" href="edit.html"><span class="ti">✏️</span>生成</a>
+  <a data-tab="show" href="show.html"><span class="ti">🌀</span>展示</a>
+</div></nav>
+
+<script src="app.js"></script>
+<script>FC.initEdit();</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
