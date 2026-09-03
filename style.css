@@ -184,7 +184,7 @@ input[type=file]{display:none;}
 .row-item.done{border-color:var(--ok);
   background:linear-gradient(160deg, rgba(198,244,222,.55), rgba(235,250,242,.7));}
 .row-item.done .box{border-color:var(--ok);background:var(--ok);color:#FFF;animation:checkPop .3s ease;}
-.row-item.done .r-name{opacity:.7;}
+.row-item.done .r-name{opacity:.7;text-decoration:line-through;text-decoration-color:var(--accent2);text-decoration-thickness:2px;}
 @keyframes checkPop{0%{transform:scale(.4);}70%{transform:scale(1.25);}100%{transform:scale(1);}}
 .row-item.pop{pointer-events:none;animation:rowPop .55s ease-in forwards;}
 @keyframes rowPop{
