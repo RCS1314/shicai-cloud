@@ -341,7 +341,7 @@ function renderHistory(histEl, emptyMsg){
   histEl.appendChild(bar); histEl.appendChild(body);
 
   var MAXW = 76;
-  arr.forEach(function(h){
+  arr.forEach(function(h, idx){
     var items=(h.items&&h.items.length)?h.items:(h.names||[]).map(function(n){return {name:n};});
     var sw=document.createElement('div'); sw.className='h-swipe';
     var delBtn=document.createElement('button'); delBtn.type='button'; delBtn.className='h-del'; delBtn.textContent='删除';
