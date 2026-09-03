@@ -31,7 +31,7 @@
   <!-- 手动输入 -->
   <div class="card">
     <h2>① 食材清单（可手动输入 / 粘贴）</h2>
-    <textarea id="ingredients" placeholder="例如：红萝卜 1 个、鸡蛋 3 个、五花肉 300g、葱 1 根、大蒜"></textarea>
+    <textarea id="ingredients" placeholder="直接输入或粘贴食材清单，点下方「解析文本」自动加入"></textarea>
     <div class="mini-actions" style="margin-top:10px;">
       <button class="btn m" id="parseBtn" type="button"><span class="mico">📝</span>解析文本</button>
       <button class="btn m hot" id="candBtn" type="button"><span class="mico">✅</span>引入识别结果</button>
@@ -41,13 +41,25 @@
 
   <!-- 清单编辑 -->
   <div class="card">
+    <div class="lm-kind">
+      <div class="lm-row">
+        <span class="lm-label">清单名称</span>
+        <input id="listName" class="lm-name-inp" type="text" placeholder="识别后自动命名，可修改" value="">
+      </div>
+      <div class="lm-row">
+        <span class="lm-label">清单分类</span>
+        <div class="lm-cat-flex">
+          <div id="catBar" class="cat-bar"></div>
+          <button id="addCatBtn" class="btn sm ghost" type="button">＋ 新建</button>
+        </div>
+      </div>
+    </div>
     <h2>② 待生成清单（共 <span id="count" style="color:var(--accent2);">0</span> 种）</h2>
     <div id="editList"></div>
     <div class="status" id="status"></div>
     <div class="foot-actions">
       <button class="big-btn" id="generateBtn" disabled>生成流体云 ›</button>
     </div>
-    <p class="hint" style="margin-top:10px;">每行：食材名 · 数量（可点击修改）· × 删除。确认后进入展示页。</p>
   </div>
 </div>
 
