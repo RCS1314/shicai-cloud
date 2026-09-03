@@ -442,7 +442,7 @@ function initShow(){
       islandCount.style.color=''; islandCount.style.background='';
     } else if(doneCount>=total){
       islandText.textContent='全部准备好了！';
-      islandCount.style.color='#06301d'; islandCount.style.background='#3dffa8';
+      islandCount.style.color='#1F5C46'; islandCount.style.background='#7ED6B8';
     } else {
       islandText.textContent = (doneCount ? '已备好 '+doneCount+' 种' : '准备食材');
       islandCount.style.color=''; islandCount.style.background='';
