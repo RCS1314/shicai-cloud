@@ -7,7 +7,7 @@
    fc_active     : 生成页确认后的最终清单（含 done）   → 展示页展示
    fc_history    : 历史 [{time,names,items}]          → 可下拉查看并跳转恢复 */
 
-var keys = { candidates:'fc_candidates', active:'fc_active', history:'fc_history' };
+var keys = { candidates:'fc_candidates', active:'fc_active', history:'fc_history', cats:'fc_cats', meta:'fc_meta' };
 
 /* ---------- 数据层 ---------- */
 function getJSON(k, def){ try{ return JSON.parse(localStorage.getItem(k)) || def; }catch(e){ return def; } }
@@ -18,9 +18,50 @@ function setCandidates(items){ setJSON(keys.candidates, items); }
 function getActive(){ return getJSON(keys.active, []); }
 function setActive(items){ setJSON(keys.active, items); }
 function getHistory(){ return getJSON(keys.history, []); }
-function addHistory(items){
+
+/* 清单自动命名：根据识别/清单内的食材自动取名（可编辑） */
+function autoName(items){
+  var names = (items||[]).map(function(i){ return (i&&i.name)||''; }).filter(Boolean);
+  if(!names.length) return '未命名清单';
+  var head = names.slice(0,3).join('、');
+  return names.length>3 ? (head+' 等 '+names.length+' 种') : head;
+}
+
+/* 清单分类库（本地“数据库”）：内置常用分类 + 用户自定义，存 localStorage */
+var DEFAULT_CATS = ['炒菜','炖菜','煮汤','煲汤','蒸菜','凉拌','红烧','烧烤','油炸','甜品','面食','粥类','火锅','凉菜','汤羹','其他'];
+function getCats(){
+  var c = getJSON(keys.cats, []);
+  var seen = {}, out = [];
+  DEFAULT_CATS.concat(c).forEach(function(x){
+    x = String(x||'').trim();
+    if(x && !seen[x]){ seen[x]=1; out.push(x); }
+  });
+  return out;
+}
+function addCat(name){
+  name = String(name||'').trim();
+  if(!name) return null;
+  var all = getCats();
+  if(all.indexOf(name) > -1) return name;
+  var c = getJSON(keys.cats, []);
+  c.push(name);
+  setJSON(keys.cats, c);
+  return name;
+}
+
+/* 清单元信息（名称/分类）：与 active 并行存储，供展示页显示 */
+function getMeta(){ return getJSON(keys.meta, {}) || {}; }
+function setMeta(m){ setJSON(keys.meta, m || {}); }
+
+function addHistory(items, name, cat){
   var arr = getHistory();
-  arr.unshift({time:new Date().toLocaleString('zh-CN'), names:items.map(function(i){return i.name;}), items:items.map(function(i){return {name:i.name, qty:i.qty||'', weight:i.weight||0};})});
+  arr.unshift({
+    time:new Date().toLocaleString('zh-CN'),
+    name:(name||autoName(items)),
+    cat:(cat||''),
+    names:items.map(function(i){return i.name;}),
+    items:items.map(function(i){return {name:i.name, qty:i.qty||'', weight:i.weight||0};})
+  });
   arr = arr.slice(0,12);
   setJSON(keys.history, arr);
 }
@@ -320,6 +361,7 @@ function openHistory(h){
   var base = (h.items && h.items.length) ? h.items : (h.names||[]).map(function(n){ return {name:n}; });
   var items = base.map(function(it){ return {name:it.name, qty:it.qty||'', weight:it.weight||0, done:false}; });
   setActive(items);
+  setMeta({name: h.name || autoName(items), cat: h.cat || ''});
   location.href='show.html';
 }
 function renderHistory(histEl, emptyMsg){
@@ -348,10 +390,13 @@ function renderHistory(histEl, emptyMsg){
     var main=document.createElement('div'); main.className='h-main';
     var head=document.createElement('div'); head.className='h-head';
     var chev=document.createElement('span'); chev.className='h-chev'; chev.textContent='▾';
-    var t=document.createElement('span'); t.className='h-time'; t.textContent=h.time;
+    var t=document.createElement('span'); t.className='h-time'; t.textContent=h.name || autoName(items);
+    t.title = h.time;
+    var catTag=document.createElement('span'); catTag.className='h-cat-tag'; catTag.textContent=h.cat||'';
+    if(!h.cat) catTag.style.display='none';
     var cnt=document.createElement('span'); cnt.className='h-cnt'; cnt.textContent=items.length+' 种';
     var bt=document.createElement('button'); bt.type='button'; bt.className='h-btn'; bt.textContent='查看';
-    head.appendChild(chev); head.appendChild(t); head.appendChild(cnt); head.appendChild(bt);
+    head.appendChild(chev); head.appendChild(t); head.appendChild(catTag); head.appendChild(cnt); head.appendChild(bt);
     var det=document.createElement('div'); det.className='h-detail';
     var wrap=document.createElement('div'); wrap.className='h-detail-in';
     items.forEach(function(it){
@@ -542,6 +587,8 @@ function initEdit(){
     fromText.concat(candidates).forEach(function(it){ if(!map[it.name]) map[it.name]=it; });
     items = Object.keys(map).map(function(k){ return map[k]; });
     refreshList();
+    var lm=listNameEl();
+    if(lm && !lm.value.trim() && items.length) lm.value = autoName(items);
   }
   function refreshList(){
     listWrap.innerHTML='';
@@ -607,13 +654,38 @@ function initEdit(){
     ta.value=''; items=[]; refreshList(); setStatus(statusEl,'已清空','');
   });
 
+  /* 清单分类：chips 单选 + 新建分类（写入本地分类库） */
+  var catSel = '';
+  function renderCats(){
+    var bar = document.getElementById('catBar');
+    if(!bar) return;
+    bar.innerHTML='';
+    getCats().forEach(function(c){
+      var b=document.createElement('button'); b.type='button';
+      b.className='cat-chip'+(c===catSel?' on':'');
+      b.textContent=c;
+      b.addEventListener('click', function(){ catSel=(catSel===c)?'':c; renderCats(); });
+      bar.appendChild(b);
+    });
+  }
+  renderCats();
+  var addCatBtn=document.getElementById('addCatBtn');
+  if(addCatBtn) addCatBtn.addEventListener('click', function(){
+    var n=prompt('输入新分类名称（如：卤味、腌菜、快手菜）','');
+    if(n){ var r=addCat(n); if(r){ catSel=r; renderCats(); setStatus(statusEl,'已新增分类：'+r,'done'); } }
+  });
+  function listNameEl(){ return document.getElementById('listName'); }
+
   if(genBtn){
     genBtn.addEventListener('click', function(){
       if(!items.length){ setStatus(statusEl,'请先添加食材','err'); return; }
       var finalItems = items.filter(function(it){ return it.name; }).map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0, done:false}; });
       if(!finalItems.length){ setStatus(statusEl,'请先添加食材','err'); return; }
+      var lm=listNameEl();
+      var listName = (lm && lm.value.trim()) ? lm.value.trim() : autoName(finalItems);
       setActive(finalItems);
-      addHistory(finalItems);
+      setMeta({name:listName, cat:catSel});
+      addHistory(finalItems, listName, catSel);
       setCandidates([]); // 清除候选，避免下次重复
       location.href='show.html';
     });
@@ -624,7 +696,9 @@ function initEdit(){
     ta.value = candidates.map(function(it){ return it.name+(it.qty?(' '+it.qty):''); }).join('、');
     items = candidates.map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0}; });
     refreshList();
-    setStatus(statusEl,'已带入识别结果，可编辑（点击名称或数量直接改）后生成','done');
+    var lm=listNameEl();
+    if(lm && !lm.value.trim()) lm.value = autoName(items);
+    setStatus(statusEl,'已按识别结果自动命名（可修改），核对后生成','done');
   } else {
     refreshList();
   }
@@ -681,6 +755,19 @@ function initShow(){
   }
   function save(){ setActive(currentItems); }
   function build(){
+    var infoEl=document.getElementById('showInfo');
+    if(infoEl){
+      var m=getMeta();
+      var nm=(m && m.name)?String(m.name):'';
+      var ct=(m && m.cat)?String(m.cat):'';
+      if(!nm && !ct){ infoEl.style.display='none'; }
+      else {
+        infoEl.style.display='flex';
+        infoEl.innerHTML='';
+        if(nm){ var s=document.createElement('span'); s.className='si-name'; s.textContent=nm; infoEl.appendChild(s); }
+        if(ct){ var c=document.createElement('span'); c.className='si-cat'; c.textContent=ct; infoEl.appendChild(c); }
+      }
+    }
     listEl.innerHTML='';
     doneCount = currentItems.filter(function(it){ return !!it.done; }).length;
     if(!currentItems.length){
