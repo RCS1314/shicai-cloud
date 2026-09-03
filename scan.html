@@ -30,19 +30,23 @@
 
   <!-- 获取食材 -->
   <div class="card">
-    <h2>① 拍照 / 选图识别</h2>
-    <div class="row">
-      <label class="btn">
-        <span class="ico">📷</span><span>拍照识别</span>
+    <h2>① 开始识别</h2>
+    <div class="scan-actions">
+      <label class="scan-choice cam">
+        <span class="sc-ico">📷</span>
+        <span class="sc-main">拍照识别</span>
+        <span class="sc-sub">调起手机相机</span>
         <input type="file" accept="image/*" capture="environment" id="camera-input">
       </label>
-      <label class="btn">
-        <span class="ico">🖼️</span><span>从相册选图</span>
+      <label class="scan-choice gal">
+        <span class="sc-ico">🖼️</span>
+        <span class="sc-main">上传图片</span>
+        <span class="sc-sub">从相册选择</span>
         <input type="file" accept="image/*" id="gallery-input">
       </label>
     </div>
     <div id="preview"></div>
-    <div class="status" id="status">支持食谱、采购单、手写清单截图，自动识别并提取食材。</div>
+    <div class="status" id="status"></div>
   </div>
 
   <!-- 识别结果 -->
