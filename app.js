@@ -5,7 +5,7 @@
 /* 数据流（localStorage）：
    fc_candidates : 识别页产物 [{name,qty,weight}]      → 生成页读取为初始清单
    fc_active     : 生成页确认后的最终清单（含 done）   → 展示页展示
-   fc_history    : 历史 [{time,names}] */
+   fc_history    : 历史 [{time,names,items}]          → 可下拉查看并跳转恢复 */
 
 var keys = { candidates:'fc_candidates', active:'fc_active', history:'fc_history' };
 
@@ -20,8 +20,8 @@ function setActive(items){ setJSON(keys.active, items); }
 function getHistory(){ return getJSON(keys.history, []); }
 function addHistory(items){
   var arr = getHistory();
-  arr.unshift({time:new Date().toLocaleString('zh-CN'), names:items.map(function(i){return i.name;})});
-  arr = arr.slice(0,8);
+  arr.unshift({time:new Date().toLocaleString('zh-CN'), names:items.map(function(i){return i.name;}), items:items.map(function(i){return {name:i.name, qty:i.qty||'', weight:i.weight||0};})});
+  arr = arr.slice(0,12);
   setJSON(keys.history, arr);
 }
 
@@ -38,27 +38,143 @@ var DICT = [
   '牛奶','酸奶','奶粉','豆浆','豆腐脑','奶茶','可乐','啤酒','凉粉','冰粉','果冻','布丁','冰沙','冰淇淋'
 ];
 
-/* ---------- 文本解析（手动输入用） ---------- */
+/* ---------- 识别库扩充：日常蔬菜 / 调料（追加进词典，覆盖面更全） ---------- */
+DICT = DICT.concat([
+  // 更多叶菜·茎菜
+  '菜心','奶白菜','红菜苔','紫菜苔','芥菜','雪里蕻','苦菊','茼蒿','菊花菜','木耳菜','菠菜根','番薯叶','红薯叶','南瓜尖','青蒜','蒜黄','韭黄','韭苔','韭菜花','香椿','薄荷','紫苏','鱼腥草','折耳根','笋尖','豌豆尖','豆苗','萝卜苗','莴笋','莴苣','儿菜','棒菜','瓢儿白','圆生菜','羽衣甘蓝','冰菜','凉薯','洋姜','鬼子姜','苤蓝','马蹄','茨菇','菱角','莲蓬','秋葵','蛇豆','荠菜','榨菜','雪菜','梅干菜','贡菜',
+  // 更多瓜果豆
+  '水果玉米','糯玉米','贝贝南瓜','老南瓜','佛手瓜','瓠瓜','葫芦瓜','苦瓜干','木瓜','菜椒','线椒','杭椒','螺丝椒','美人椒','泡椒','野山椒','朝天椒','干辣椒面','彩椒','灯笼椒','青尖椒',
+  '荷兰豆','甜豆','刀豆','油豆角','芸豆','眉豆','鹰嘴豆','蚕豆米','青豆','红豆','绿豆','黑豆','黄豆','鹰嘴豆',
+  // 更多菌菇·干货
+  '茶树菇','蟹味菇','白玉菇','海鲜菇','猴头菇','虫草花','牛肝菌','松茸','鸡枞菌','香菇干','冬菇','花菇','口蘑','松蘑','羊肚菌','榆黄蘑','竹荪','香菇柄',
+  '腐竹','响铃','油麦','豆皮卷','素火腿','水面筋','烤麸','面藕',
+  // 调料扩充
+  '孜然粉','黑胡椒','白胡椒','胡椒','花椒粉','辣椒粉','椒盐','花椒油','藤椒油','辣椒油','红油','蒜蓉','姜末','蒜末','葱花','蒸鱼豉油','豉油','味极鲜','海鲜酱','蒜蓉辣酱','烧烤酱','叉烧酱','排骨酱','柱侯酱','黄豆酱','黄豆瓣','剁椒','辣椒酱','郫县豆瓣','南乳','红腐乳','白腐乳','糟卤','米酒','醪糟','白醋','米醋','寿司醋','绵白糖','糖粉','麦芽糖','鱼露','虾酱','浓汤宝','高汤','骨头汤','鸡粉','蘑菇精','蔬菜精','咖喱粉','沙茶酱','麻酱','花生碎','白芝麻','黑芝麻','茴香','丁香','草果','白芷','陈皮','甘草','罗汉果','党参','当归','黄芪','砂仁','豆蔻','白豆蔻','迷迭香','百里香','罗勒','海苔','芥末酱','照烧汁','黑胡椒酱','蛋黄酱','千岛酱','油醋汁','蒜粉','洋葱粉','苏打粉','泡打粉','小苏打','酵母','吉利丁','木薯淀粉','玉米淀粉','番茄膏','番茄沙司','椰蓉','椰丝','奥利奥碎',
+  // 更多蛋奶·荤
+  '鸡小腿','琵琶腿','鸭腿','鹅','乳鸽','猪腰','猪心','猪肺','肥肠','大肠','小肠','毛肚','黄喉','鸭血','猪血','血豆腐','牛百叶','牛杂','羊杂','鸡杂',
+  '鸡蛋白','咸蛋黄','茶叶蛋','卤蛋','蛋挞','荷包蛋','水煮蛋',
+  // 更多水果·坚果·干果
+  '哈密瓜','白兰瓜','木瓜','蟠桃','油桃','大力果','山竹','菠萝蜜','红毛丹','金桔','青柠','西柚','百香果','牛油果','人参果','释迦','车厘子','草莓果','玫瑰香','桑葚','乌梅','话梅','陈皮梅','杏干','桃干','葡萄干','蔓越莓','蓝莓干','开心果','碧根果','夏威夷果','山核桃','榛子','南瓜子','西瓜子','葵花籽','黑白芝麻',
+  // 主食·其它
+  '馒头片','花卷','糖三角','窝头','玉米面','荞麦面','全麦粉','意面','通心粉','乌冬面','河粉','米线','酸辣粉','面片','疙瘩汤','疙瘩','朝鲜冷面','云吞','抄手','生煎','锅贴','麻花','撒子','桃酥','绿豆糕','米糕','发糕','糍粑','青团','艾粑','汤圆粉','藕粉','葛根粉'
+]);
+
+/* ---------- OCR 形近字（字形级，高置信） ---------- */
+var OCR_MAP = {
+  'ト':'卜','丅':'卜','籮':'萝','羅':'萝','薐':'萝','箉':'笋','筍':'笋',
+  '見':'见','貝':'贝','問':'问','間':'间','說':'说','話':'话'
+};
+
+/* ---------- 食材别名 / 常见 OCR 错误变体（词级，兼容手写与模糊字体） ---------- */
+var FOOD_ALIAS = {
+  '胡罗ト':'胡萝卜','胡罗卜':'胡萝卜','胡羅ト':'胡萝卜','胡羅卜':'胡萝卜','胡箩卜':'胡萝卜','葫萝卜':'胡萝卜','胡萝ト':'胡萝卜','胡萝下':'胡萝卜','葫罗ト':'胡萝卜','葫羅ト':'胡萝卜','胡薐ト':'胡萝卜','胡芦卜':'胡萝卜',
+  '白罗卜':'白萝卜','白羅卜':'白萝卜','紅萝卜':'红萝卜','红罗卜':'红萝卜','青羅卜':'青萝卜','水羅卜':'水萝卜',
+  '箩卜':'萝卜','羅卜':'萝卜','罗卜':'萝卜','薐卜':'萝卜','羅ト':'萝卜',
+  '西红设':'西红柿','西紅柿':'西红柿','番茄':'西红柿','西紅设':'西红柿','西红榭':'西红柿','洋柿子':'番茄',
+  '火煺':'火腿','火退':'火腿','四条':'四季豆','香茹':'香菇','海带缜':'海带结','海带时':'海带结','海带节':'海带结','平果':'苹果',
+  '冬爪':'冬瓜','南爪':'南瓜','黄爪':'黄瓜','丝爪':'丝瓜','苦爪':'苦瓜','西爪':'西瓜','木爪':'木瓜','南爪':'南瓜','悟瓜':'南瓜','西柢':'西瓜',
+  '鸡旦':'鸡蛋','吉蛋':'鸡蛋','鸡掸':'鸡蛋','鸡但':'鸡蛋','鸡蛋清':'蛋清','鸭旦':'鸭蛋','皮旦':'皮蛋','咸旦':'咸蛋','鹌鹓蛋':'鹌鹑蛋',
+  '豆府':'豆腐','豆付':'豆腐','豆干':'豆腐干','香干':'豆腐干','豆府干':'豆腐干','腐竹丝':'腐竹',
+  '辣掓':'辣椒','辣叔':'辣椒','花掓':'花椒','青掓':'青椒','红掓':'红椒','干辣掓':'干辣椒','辣菽':'辣椒','藤掓':'藤椒',
+  '波菜':'菠菜','波莱':'菠菜','菠采':'菠菜','菠莱':'菠菜','波采':'菠菜','菠薐':'菠菜','芹菜':'芹菜','芹苔':'芹菜','荠菜':'荠菜',
+  '香菰':'香菇','香姑':'香菇','磨菇':'蘑菇','蘑菰':'蘑菇','蘑菇头':'蘑菇','金针菰':'金针菇','香菇姑':'香菇','口磨':'口蘑','草茹':'草菇','香菇柄子':'香菇',
+  '木饵':'木耳','银饵':'银耳','白木耳':'银耳','海芾':'海带','海带丝结':'海带结','紫罗':'紫菜','海苔丝':'海苔','冬菰':'冬菇','茶树菰':'茶树菇',
+  '大聪':'大葱','小聪':'小葱','洋聪':'洋葱','香聪':'香葱','聪':'葱','葱蒜':'葱','大葱蒜':'大葱',
+  '生萎':'生姜','生葁':'生姜','老萎':'老姜','老葁':'老姜','生姜片':'姜片','日姜':'生姜','鲜姜':'生姜',
+  '猪内':'猪肉','牛内':'牛肉','羊内':'羊肉','鸡内':'鸡肉','鱼内':'鱼肉','排内':'排骨','鸭内':'鸭肉','五内':'五花肉','亥肉':'五花肉','猪五内':'五花肉','培根片':'培根',
+  '大祘':'大蒜','大搢':'大蒜','蒜豪':'蒜薹','蒜苔':'蒜薹','蒜苗青':'蒜苗','韭黄芽':'韭黄','大祘头':'蒜头',
+  '洋芋':'土豆','马铃薯':'土豆','地蛋':'土豆','土荳':'土豆','上豆':'土豆','土豆儿':'土豆','土头':'土豆','土豆仔':'土豆',
+  '番薯':'红薯','山芋':'红薯','红苕':'红薯','地瓜':'红薯','白薯':'红薯','紅薯':'红薯','紅芋':'红薯',
+  '苞谷':'玉米','棒子':'玉米','苞米':'玉米','玉米棒':'玉米','玉黍':'玉米','粘玉米':'玉米',
+  '芫荽':'香菜','芫荽菜':'香菜','香荽':'香菜','茴香苗':'香菜','芫茜':'香菜','芢荽':'香菜',
+  '芝蔴':'芝麻','芝麻酱':'芝麻酱','白芝蔴':'白芝麻','黑芝蔴':'黑芝麻',
+  '番笳':'番茄','范茄':'番茄','蕃茄':'番茄','西红柿子':'西红柿','西紅柿':'西红柿',
+  '卜':'萝卜','罗ト':'萝卜','茐':'葱','苣':'莴苣','莴苣':'莴笋','莴荀':'莴笋','莴笋':'莴笋',
+  '蛋挞皮':'蛋挞','鸡蛋糕':'蛋糕','蛋糕':'蛋糕','饼千':'饼干','饼乾':'饼干',
+  '香肠片':'香肠','火腿肠':'火腿肠','午餐肉':'午餐肉','腊肠':'腊肠','香肠':'香肠',
+  '木须肉':'木须肉','鱼香肉丝':'鱼香肉丝','宫保鸡丁':'宫保鸡丁','麻婆豆腐':'麻婆豆腐','回锅肉':'回锅肉','红烧肉':'红烧肉','糖醋排骨':'糖醋排骨','可乐鸡翅':'可乐鸡翅','可乐鸡翅根':'可乐鸡翅',
+  '榨菜丝':'榨菜','酸菜':'酸菜','雪里红':'雪里蕻','梅干菜':'梅干菜','腊八蒜':'腊八蒜','糖蒜':'糖蒜',
+  '饭店':'服务员','小票':'小票','菜单':'菜单','菜品':'菜品','招牌':'招牌'
+};
+
+/* ---------- 单位识别库 ---------- */
+var UNITS='枚|颗|粒|个|只|根|条|块|片|瓣|头|把|束|朵|株|捆|串|扎|尾|支|份|盘|碟|碗|杯|锅|盆|盅|匙|勺|撮|段|节|张|件|包|袋|罐|盒|篮|窝|棵|斤|两|克|千克|公斤|毫克|毫升|升|g|G|kg|KG|ml|ML|L';
+/* 口语容器类量词：识别到手写/口语模糊单位时，自动替换为该食材的默认单位 */
+var UNIT_SOFT = {'勺':1,'匙':1,'碗':1,'杯':1,'盘':1,'碟':1,'份':1,'盅':1,'锅':1,'盆':1,'小勺':1,'大勺':1,'汤匙':1,'茶匙':1,'小碗':1};
+/* 食材 → 默认单位（单位缺失或口语量词时自动修正，如“苹果5勺”→“苹果5块”） */
+var FOOD_UNIT = {
+  '苹果':'块','西瓜':'块','哈密瓜':'块','菠萝':'块','木瓜':'块','牛油果':'个','榴莲':'瓣','柚子':'瓣',
+  '香蕉':'根','黄瓜':'根','丝瓜':'根','苦瓜':'根','茄子':'根','西葫芦':'根','山药':'根','莴笋':'根','玉米':'根','胡萝卜':'根','白萝卜':'根','青萝卜':'根','红萝卜':'根','水萝卜':'根','萝卜':'根','大葱':'根','小葱':'根','葱':'根','油条':'根','香肠':'根','火腿':'根','甘蔗':'根',
+  '土豆':'个','红薯':'个','芋头':'个','鸡蛋':'个','鸭蛋':'个','皮蛋':'个','咸蛋':'个','松花蛋':'个','西红柿':'个','番茄':'个','辣椒':'个','青椒':'个','红椒':'个','橙子':'个','橘子':'个','梨':'个','桃':'个',
+  '姜':'块','生姜':'块','豆腐':'块','豆腐干':'块','豆干':'块','肉':'块','猪肉':'块','五花肉':'块','牛肉':'块','羊肉':'块','鸡肉':'块','鸭肉':'块','鱼':'条','草鱼':'条','鲈鱼':'条','鲫鱼':'条','带鱼':'条','黄鱼':'条',
+  '香菇':'朵','蘑菇':'朵','平菇':'朵','木耳':'朵','银耳':'朵','西兰花':'朵','花菜':'朵','菜花':'朵',
+  '金针菇':'把','蒜薹':'把','韭菜':'把','菠菜':'把','小白菜':'把','上海青':'把','油麦菜':'把','芹菜':'把','香菜':'把','豆芽':'把','荷兰豆':'把','四季豆':'把','豆角':'把','豌豆':'把','毛豆':'把','茼蒿':'把','空心菜':'把','芥蓝':'把','芦笋':'把','秋葵':'把','小米椒':'把',
+  '大蒜':'头','蒜':'头','大白菜':'棵','娃娃菜':'棵','生菜':'棵','卷心菜':'棵','包菜':'棵',
+  '鸡蛋':'个','鸭蛋':'个','鹌鹑蛋':'颗','草莓':'颗','蓝莓':'颗','花生':'颗','红枣':'颗','桂圆':'颗','山楂':'颗','腰果':'颗','杏仁':'颗','松子':'颗','板栗':'颗','核桃':'个',
+  '虾':'只','虾仁':'只','蟹':'只','鱿鱼':'只','扇贝':'只','生蚝':'只','鸡翅':'根','鸡腿':'个','鸡爪':'根','鸡胸':'块','里脊':'块','排骨':'根','牛腱':'块','豆腐泡':'个','豆泡':'个','面筋':'个',
+  '馒头':'个','包子':'个','饺子':'个','汤圆':'个','年糕':'块','蛋糕':'块','面包':'片','培根':'片','紫菜':'片','藕':'节','莲藕':'节','海带':'段',
+  '米饭':'碗','面条':'碗','粥':'碗','鱼片':'片','龙利鱼':'片','三文鱼':'块','鱼块':'块','肉片':'片','肉丝':'份'
+};
+
+/* ---------- 工具：正则/归一/单位修正 ---------- */
 function chineseNumToInt(s){
   var map = {'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'半':0.5};
   var n = 0;
   for(var i=0;i<String(s).length;i++){ n = n*10 + (map[s[i]]||0); }
   return n;
 }
+function toNum(s){ if(/^[0-9]+$/.test(s)) return parseInt(s,10); return chineseNumToInt(s); }
+function normChar(c){ return OCR_MAP[c] || c; }
+function normalizeWord(w){ return String(w).split('').map(normChar).join(''); }
+var CN_RE = /^[\u4e00-\u9fa5]+$/;
+/* 名称智能归一：形近字 → 别名 → 词典标准名；用于手写/OCR 与手动输入 */
+var normDict = DICT.map(normalizeWord);
+function fixName(name){
+  if(!name) return name;
+  var raw = String(name).trim();
+  if(!raw) return raw;
+  if(FOOD_ALIAS[raw]) return FOOD_ALIAS[raw];
+  var np = normalizeWord(raw);
+  if(FOOD_ALIAS[np]) return FOOD_ALIAS[np];
+  var idx = normDict.indexOf(np);
+  if(idx > -1) return DICT[idx];
+  return raw;
+}
+/* 单位拆分与修正：把口语/缺失单位校正为食材默认单位 */
+function splitQty(q){
+  if(!q) return {n:'',u:''};
+  var m = String(q).match(/^([0-9一二三四五六七八九十两半]+)\s*(.*)$/);
+  return {n:m?m[1]:(String(q)||''), u:m?(m[2]||'').trim():''};
+}
+function fixUnit(name, qtyStr){
+  if(!name || !qtyStr) return qtyStr||'';
+  var p = splitQty(qtyStr);
+  var def = FOOD_UNIT[name];
+  if(def){
+    if(!p.u) return p.n + def;
+    if(UNIT_SOFT[p.u]) return p.n + def;
+  }
+  return qtyStr;
+}
+
+/* ---------- 文本解析（手动输入用） ---------- */
+var LINE_RE = new RegExp('^(.+?)\\s*([0-9一二三四五六七八九十两半]+)\\s*('+UNITS+')?$');
 function parseIngredients(text){
   var items = [];
   var lines = String(text||'').split(/[\n,，、;；]+/);
   lines.forEach(function(line){
     line = line.trim();
     if(!line) return;
-    var m = line.match(/^(.+?)\s*([0-9一二三四五六七八九十两半]+)\s*(个|枚|颗|根|条|只|斤|克|g|G|kg|KG|块|包|袋|勺|碗|片|瓣|头|束|把|毫升|升|罐|盒|朵|株|捆|篮)?$/);
+    var m = line.match(LINE_RE);
     if(m){
-      var name = m[1].trim(), qty = m[2], unit = (m[3]||'').toLowerCase();
+      var name = fixName(m[1].trim());
+      var num = m[2], unit = (m[3]||'').toLowerCase();
       var weight = 0;
-      if(unit==='克'||unit==='g'){ weight = chineseNumToInt(qty); }
-      else if(unit==='斤'){ weight = chineseNumToInt(qty)*500; }
-      else if(unit==='公斤'||unit==='kg'){ weight = chineseNumToInt(qty)*1000; }
-      items.push({name:name, qty:qty+unit, weight:weight});
+      if(unit==='克'||unit==='g'||unit==='G'){ weight = toNum(num); }
+      else if(unit==='斤'){ weight = toNum(num)*500; }
+      else if(unit==='千克'||unit==='公斤'||unit==='kg'||unit==='KG'){ weight = toNum(num)*1000; }
+      var qty = fixUnit(name, num+(m[3]||''));
+      items.push({name:name, qty:qty, weight:weight});
     } else {
       items.push({name:line, qty:'', weight:0});
     }
@@ -117,44 +233,15 @@ async function ocrImage(canvas, onStatus){
   return res.data.text;
 }
 
-/* ---------- OCR 容错 ---------- */
-function editDist(a, b){
-  a = String(a); b = String(b);
-  var m=a.length, n=b.length;
-  if(Math.abs(m-n)>2) return 99;
-  var dp=[];
-  for(var i=0;i<=m;i++){ dp[i]=[i]; for(var j=1;j<=n;j++) dp[i][j]=0; }
-  for(var j=0;j<=n;j++) dp[0][j]=j;
-  for(i=1;i<=m;i++){
-    for(j=1;j<=n;j++){
-      var cost = a[i-1]===b[j-1]?0:1;
-      dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
-    }
-  }
-  return dp[m][n];
-}
-var OCR_MAP = {
-  'ト':'卜','丅':'卜','籮':'萝','羅':'萝','薐':'萝','箉':'笋',
-  '見':'见','貝':'贝','問':'问','間':'间','說':'说','話':'话'
-};
-var FOOD_ALIAS = {
-  '胡罗ト':'胡萝卜','胡罗卜':'胡萝卜','胡羅ト':'胡萝卜','胡羅卜':'胡萝卜','胡箩卜':'胡萝卜','葫萝卜':'胡萝卜','胡萝ト':'胡萝卜','胡萝下':'胡萝卜','葫罗ト':'胡萝卜','葫羅ト':'胡萝卜','胡薐ト':'胡萝卜',
-  '白罗卜':'白萝卜','白羅卜':'白萝卜','紅萝卜':'红萝卜','红罗卜':'红萝卜','青羅卜':'青萝卜','水羅卜':'水萝卜',
-  '箩卜':'萝卜','羅卜':'萝卜','罗卜':'萝卜','薐卜':'萝卜',
-  '西红设':'西红柿','西紅柿':'西红柿','番茄':'西红柿','西紅设':'西红柿',
-  '火煺':'火腿','火退':'火腿','四条':'四季豆','香茹':'香菇','海带缜':'海带结','海带时':'海带结','海带节':'海带结','平果':'苹果'
-};
-function normChar(c){ return OCR_MAP[c] || c; }
-function normalizeWord(w){ return String(w).split('').map(normChar).join(''); }
-var CN_RE = /^[\u4e00-\u9fa5]+$/;
+/* ---------- OCR 文本 → 食材清单（词典最大匹配 + 别名 + 单位修正） ---------- */
+var NUM_TAIL_RE = new RegExp('^([0-9]+|[一二三四五六七八九十两半]+)('+UNITS+')?');
 
 function extractFromText(text){
   var t = String(text||'');
   var found = {};
-  var normDict = DICT.map(normalizeWord);
   var maxL = 6;
   var compact = normalizeWord(t.replace(/[\s\u3000、，,。；;·•\-—_*:：()（）【】[\]"'"“”]+/g,''));
-  var i = 0, lastName = null, pendingQty = null;
+  var i = 0, lastName = null, lastNameEnd = -1, pendingQty = null;
   function resolve(piece){
     if(!piece) return null;
     if(FOOD_ALIAS[piece]) return FOOD_ALIAS[piece];
@@ -166,6 +253,7 @@ function extractFromText(text){
   }
   function commit(name, qty){
     if(!qty && pendingQty){ qty = pendingQty; pendingQty = null; }
+    if(qty) qty = fixUnit(name, qty);
     if(found[name]){ if(qty) found[name].qty = qty; }
     else { found[name] = {name:name, qty:qty||'', weight:0}; }
     lastName = name;
@@ -174,7 +262,7 @@ function extractFromText(text){
     var ch = compact.charAt(i);
     // ① 数字 → 数量
     if(/[0-9一二三四五六七八九十两半]/.test(ch)){
-      var dm = compact.substr(i).match(/^([0-9]+|[一二三四五六七八九十两半]+)(个|枚|颗|根|条|只|斤|两|克|g|G|kg|KG|块|包|袋|勺|碗|片|瓣|头|束|把|毫升|升|罐|盒|朵|株|捆|篮)?/);
+      var dm = compact.substr(i).match(NUM_TAIL_RE);
       if(dm){
         var q = dm[0];
         if(dm[2]){
@@ -184,8 +272,9 @@ function extractFromText(text){
           i += q.length;
           continue;
         } else if(/^[0-9]+$/.test(dm[1])){
-          // 纯阿拉伯数字（如"3苹果"前置数量）→ 暂存
-          pendingQty = dm[1];
+          // 纯阿拉伯数字：如紧邻上一食材（"苹果3"）→ 直接归属并补默认单位；否则暂存给下个食材
+          if(lastName && i === lastNameEnd){ commit(lastName, dm[1]); }
+          else { pendingQty = dm[1]; }
           i += dm[1].length;
           continue;
         }
@@ -201,6 +290,7 @@ function extractFromText(text){
     if(matched){
       commit(matched, '');
       lastName = matched;
+      lastNameEnd = i + matchedLen;
       i += matchedLen;
     } else { i++; }
   }
@@ -222,20 +312,59 @@ function renderChips(el, names){
     var c=document.createElement('span'); c.className='chip'; c.textContent=n; el.appendChild(c);
   });
 }
+/* 历史记录：下拉表格。点击行/“查看”→ 恢复该条清单并跳转展示页；点 ▾ 可展开明细 */
+function openHistory(h){
+  if(!h) return;
+  var base = (h.items && h.items.length) ? h.items : (h.names||[]).map(function(n){ return {name:n}; });
+  var items = base.map(function(it){ return {name:it.name, qty:it.qty||'', weight:it.weight||0, done:false}; });
+  setActive(items);
+  location.href='show.html';
+}
 function renderHistory(histEl, emptyMsg){
   if(!histEl) return;
   var arr = getHistory();
   if(!arr.length){ histEl.innerHTML='<p class="hint">'+(emptyMsg||'暂无历史记录')+'</p>'; return; }
-  histEl.innerHTML='';
+  var tbl=document.createElement('table'); tbl.className='hist-tbl';
+  var thead=document.createElement('thead');
+  var thr=document.createElement('tr');
+  thr.innerHTML='<th>时间</th><th class="h-cnt-h">数量</th><th class="h-op">操作</th>';
+  thead.appendChild(thr);
+  var tbody=document.createElement('tbody');
   arr.forEach(function(h){
-    var d=document.createElement('div'); d.className='hist-item';
-    var t=document.createElement('div'); t.className='h-time';
-    t.textContent = h.time + ' · '+h.names.length+' 种';
-    h.names.forEach(function(n){
-      var c=document.createElement('span'); c.className='chip'; c.textContent=n; d.appendChild(c);
+    var items=(h.items&&h.items.length)?h.items:(h.names||[]).map(function(n){return {name:n};});
+    var tr=document.createElement('tr'); tr.className='hist-row';
+    var tdT=document.createElement('td');
+    var chev=document.createElement('span'); chev.className='h-chev'; chev.textContent='▾';
+    var t=document.createElement('span'); t.className='h-time'; t.textContent=h.time;
+    tdT.appendChild(chev); tdT.appendChild(t);
+    var tdC=document.createElement('td'); tdC.className='h-cnt'; tdC.textContent=items.length+' 种';
+    var tdOp=document.createElement('td'); tdOp.className='h-op';
+    var bt=document.createElement('button'); bt.className='h-btn'; bt.textContent='查看';
+    tdOp.appendChild(bt);
+    tr.appendChild(tdT); tr.appendChild(tdC); tr.appendChild(tdOp);
+    tbody.appendChild(tr);
+    tr.addEventListener('click', function(){ openHistory(h); });
+    bt.addEventListener('click', function(e){ e.stopPropagation(); openHistory(h); });
+    // 下拉明细行
+    var trd=document.createElement('tr'); trd.className='hist-detail';
+    var tdD=document.createElement('td'); tdD.setAttribute('colspan','3');
+    var wrap=document.createElement('div'); wrap.className='h-detail';
+    items.forEach(function(it){
+      var c=document.createElement('span'); c.className='chip h-chip'; c.textContent=it.name+(it.qty?(' '+it.qty):'');
+      c.addEventListener('click', function(e){ e.stopPropagation(); openHistory(h); });
+      wrap.appendChild(c);
     });
-    d.appendChild(t); histEl.appendChild(d);
+    tdD.appendChild(wrap);
+    trd.appendChild(tdD);
+    tbody.appendChild(trd);
+    chev.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = trd.classList.toggle('open');
+      tr.classList.toggle('open', open);
+    });
   });
+  tbl.appendChild(thead); tbl.appendChild(tbody);
+  histEl.innerHTML=''; histEl.appendChild(tbl);
 }
 /* 底部导航高亮 */
 function setTab(cur){
@@ -345,6 +474,16 @@ function initEdit(){
   var candidates = getCandidates();
   var items = [];   // 编辑中的清单 [{name,qty,weight}]
 
+  /* 名称自动补全下拉（datalist，取自识别库） */
+  if(!document.getElementById('foodList')){
+    var dl=document.createElement('datalist'); dl.id='foodList';
+    var seen={};
+    DICT.concat(Object.keys(FOOD_ALIAS)).forEach(function(n){
+      if(!seen[n]){ seen[n]=1; var o=document.createElement('option'); o.value=n; dl.appendChild(o); }
+    });
+    document.body.appendChild(dl);
+  }
+
   function parseToItems(){
     // 手动输入文本 + 识别候选 合并
     var fromText = parseIngredients(ta.value);
@@ -356,14 +495,23 @@ function initEdit(){
   function refreshList(){
     listWrap.innerHTML='';
     if(!items.length){
-      listWrap.innerHTML='<p class="hint" style="text-align:center;padding:18px 0;">暂无食材<br>可点击上方「引入识别结果」或直接输入</p>';
+      listWrap.innerHTML='<p class="hint" style="text-align:center;padding:18px 0;">暂无食材<br>点击下方「＋ 新增食材」或上方「引入识别结果」</p>';
     }
     items.forEach(function(it, idx){
       var row=document.createElement('div'); row.className='edit-item';
-      var nm=document.createElement('div'); nm.className='e-name'; nm.textContent=it.name;
+      var nm=document.createElement('input'); nm.type='text'; nm.className='e-name-inp';
+      nm.value=it.name||''; nm.placeholder='食材名称（可编辑）'; nm.setAttribute('list','foodList');
+      nm.addEventListener('input', function(){ it.name = nm.value; });
+      nm.addEventListener('blur', function(){
+        var fixed = fixName(it.name);
+        if(fixed && fixed !== it.name){ it.name = fixed; nm.value = fixed; setStatus(statusEl, '已识别名称：'+fixed, 'done'); }
+      });
       var qWrap=document.createElement('div'); qWrap.className='e-qty';
-      var inp=document.createElement('input'); inp.type='text'; inp.className='qty-input'; inp.value=it.qty||''; inp.placeholder='数量可改';
+      var inp=document.createElement('input'); inp.type='text'; inp.className='qty-input'; inp.value=it.qty||''; inp.placeholder='数量+单位';
       inp.addEventListener('input', function(){ it.qty = inp.value; });
+      inp.addEventListener('blur', function(){
+        if(it.name && inp.value){ it.qty = fixUnit(it.name, inp.value); inp.value = it.qty; }
+      });
       qWrap.appendChild(inp);
       var del=document.createElement('button'); del.className='e-del'; del.textContent='×';
       del.onclick=function(){ items.splice(idx,1); refreshList(); };
@@ -377,6 +525,18 @@ function initEdit(){
     return items.map(function(it){ return it.name + (it.qty?(' '+it.qty):''); }).join('、');
   }
 
+  /* 「＋ 新增食材」按钮：自动挂在清单卡底部 */
+  var addBtn=document.createElement('button'); addBtn.className='add-row-btn'; addBtn.type='button';
+  addBtn.textContent='＋ 新增食材（自动识别名称）';
+  addBtn.addEventListener('click', function(){
+    items.push({name:'', qty:'', weight:0});
+    refreshList();
+    var inps = listWrap.querySelectorAll('.e-name-inp');
+    if(inps.length){ var last=inps[inps.length-1]; last.focus(); last.value=''; }
+    if(statusEl) statusEl.textContent='';
+  });
+  if(listWrap && listWrap.parentNode){ listWrap.parentNode.insertBefore(addBtn, listWrap.nextSibling); }
+
   var txtBtn = document.getElementById('parseBtn');
   if(txtBtn) txtBtn.addEventListener('click', function(){ parseToItems(); setStatus(statusEl,'已解析输入文本','done'); });
   var cbBtn = document.getElementById('candBtn');
@@ -388,7 +548,6 @@ function initEdit(){
       items.concat(c).forEach(function(it){ if(!map[it.name]) map[it.name]=it; });
       items = Object.keys(map).map(function(k){ return map[k]; });
       refreshList();
-      setStatus(statusEl,'已引入识别结果 '+'种'.replace('种',''),'done');
       setStatus(statusEl,'已引入识别结果 '+c.length+' 种食材','done');
     });
   }
@@ -400,7 +559,8 @@ function initEdit(){
   if(genBtn){
     genBtn.addEventListener('click', function(){
       if(!items.length){ setStatus(statusEl,'请先添加食材','err'); return; }
-      var finalItems = items.map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0, done:false}; });
+      var finalItems = items.filter(function(it){ return it.name; }).map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0, done:false}; });
+      if(!finalItems.length){ setStatus(statusEl,'请先添加食材','err'); return; }
       setActive(finalItems);
       addHistory(finalItems);
       setCandidates([]); // 清除候选，避免下次重复
@@ -413,7 +573,7 @@ function initEdit(){
     ta.value = candidates.map(function(it){ return it.name+(it.qty?(' '+it.qty):''); }).join('、');
     items = candidates.map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0}; });
     refreshList();
-    setStatus(statusEl,'已带入识别结果，可编辑后生成','done');
+    setStatus(statusEl,'已带入识别结果，可编辑（点击名称或数量直接改）后生成','done');
   } else {
     refreshList();
   }
@@ -426,7 +586,6 @@ function initEdit(){
 function initShow(){
   var statusEl = document.getElementById('status');
   var listEl = document.getElementById('list');
-  var emptyHint = document.getElementById('emptyHint');
   var islandText = document.getElementById('islandText');
   var islandCount = document.getElementById('islandCount');
   var metaEl = document.getElementById('meta');
@@ -476,7 +635,7 @@ function initShow(){
     doneCount = currentItems.filter(function(it){ return !!it.done; }).length;
     if(!currentItems.length){
       var empty=document.createElement('div'); empty.className='list-empty';
-      empty.innerHTML='🧺<br>还没有内容<br>请先到「生成页」生成清单';
+      empty.innerHTML='🧾<br>还没有内容<br>请先到「生成页」生成清单，或从首页历史打开一份';
       listEl.appendChild(empty);
       islandText.textContent='准备食材';
       resetBtn.disabled = true;
@@ -518,7 +677,8 @@ window.FC = {
   initScan:initScan, initEdit:initEdit, initShow:initShow, initHome:initHome,
   getCandidates:getCandidates, setCandidates:setCandidates,
   getActive:getActive, setActive:setActive,
-  extractFromText:extractFromText
+  extractFromText:extractFromText, parseIngredients:parseIngredients,
+  fixName:fixName, fixUnit:fixUnit, openHistory:openHistory
 };
 
 /* OCR 引擎备用源 */
