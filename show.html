@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1226">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>灵动岛 · 食材流体云</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="ht">
+      <h1>展示页面 · 灵动岛</h1>
+      <p class="sub">边备菜边打勾</p>
+    </div>
+  </header>
+
+  <!-- 步骤条 -->
+  <div class="steps">
+    <div class="step done"><span class="dot">✓</span>识别</div>
+    <div class="step-line"></div>
+    <div class="step done"><span class="dot">✓</span>生成</div>
+    <div class="step-line"></div>
+    <div class="step active"><span class="dot">3</span>展示</div>
+  </div>
+
+  <!-- 灵动岛舞台 -->
+  <div class="card">
+    <div class="stage">
+      <div class="island">
+        <span class="island-ico">🧺</span>
+        <span class="island-text" id="islandText">准备食材</span>
+        <span class="island-count" id="islandCount">0/0</span>
+        <div class="island-wave"></div>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="meta">
+      <span id="meta">共 0 种食材</span>
+      <button id="resetBtn" disabled>重置进度</button>
+    </div>
+    <div class="legend">每行：食材名称 · 数量（可修改）· 方框。点方框打 ✓ 后该行像泡沫一样消失，自动计入已完成。</div>
+    <div class="status" id="status"></div>
+    <div class="foot-actions">
+      <a href="edit.html" class="big-btn sec" style="text-decoration:none;">‹ 回生成页</a>
+      <button class="big-btn" id="addMore" onclick="location.href='scan.html'">＋ 加食材</button>
+    </div>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<nav class="tabbar"><div class="tb-in">
+  <a data-tab="home" href="index.html"><span class="ti">🏠</span>首页</a>
+  <a data-tab="scan" href="scan.html"><span class="ti">📷</span>识别</a>
+  <a data-tab="edit" href="edit.html"><span class="ti">✏️</span>生成</a>
+  <a data-tab="show" href="show.html"><span class="ti">🌀</span>展示</a>
+</div></nav>
+
+<script src="app.js"></script>
+<script>FC.initShow();</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
