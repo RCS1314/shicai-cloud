@@ -312,7 +312,9 @@ function renderChips(el, names){
     var c=document.createElement('span'); c.className='chip'; c.textContent=n; el.appendChild(c);
   });
 }
-/* 历史记录：下拉表格。点击行/“查看”→ 恢复该条清单并跳转展示页；点 ▾ 可展开明细 */
+/* 历史记录：下拉菜单 + 左滑删除。
+   顶部折叠条 = 下拉菜单入口；条目点击标题/「查看」恢复并跳转展示页；
+   点 ▾ 展开该条食材明细；向左滑动条目露出红色「删除」可删除该条记录。 */
 function openHistory(h){
   if(!h) return;
   var base = (h.items && h.items.length) ? h.items : (h.names||[]).map(function(n){ return {name:n}; });
@@ -323,48 +325,95 @@ function openHistory(h){
 function renderHistory(histEl, emptyMsg){
   if(!histEl) return;
   var arr = getHistory();
+  histEl.innerHTML='';
   if(!arr.length){ histEl.innerHTML='<p class="hint">'+(emptyMsg||'暂无历史记录')+'</p>'; return; }
-  var tbl=document.createElement('table'); tbl.className='hist-tbl';
-  var thead=document.createElement('thead');
-  var thr=document.createElement('tr');
-  thr.innerHTML='<th>时间</th><th class="h-cnt-h">数量</th><th class="h-op">操作</th>';
-  thead.appendChild(thr);
-  var tbody=document.createElement('tbody');
+
+  /* 顶部下拉菜单条 */
+  var bar=document.createElement('button'); bar.type='button'; bar.className='hist-bar';
+  bar.innerHTML='<span class="hb-txt">历史记录 · 共 '+arr.length+' 条</span><span class="ht-chev">▾</span>';
+  var body=document.createElement('div'); body.className='hist-body';
+  bar.addEventListener('click', function(){
+    var collapsed = body.style.display==='none';
+    body.style.display = collapsed ? 'block' : 'none';
+    bar.classList.toggle('collapsed', !collapsed);
+    bar.querySelector('.ht-chev').textContent = '▾';
+  });
+  histEl.appendChild(bar); histEl.appendChild(body);
+
+  var MAXW = 76;
   arr.forEach(function(h){
     var items=(h.items&&h.items.length)?h.items:(h.names||[]).map(function(n){return {name:n};});
-    var tr=document.createElement('tr'); tr.className='hist-row';
-    var tdT=document.createElement('td');
+    var sw=document.createElement('div'); sw.className='h-swipe';
+    var delBtn=document.createElement('button'); delBtn.type='button'; delBtn.className='h-del'; delBtn.textContent='删除';
+    var main=document.createElement('div'); main.className='h-main';
+    var head=document.createElement('div'); head.className='h-head';
     var chev=document.createElement('span'); chev.className='h-chev'; chev.textContent='▾';
     var t=document.createElement('span'); t.className='h-time'; t.textContent=h.time;
-    tdT.appendChild(chev); tdT.appendChild(t);
-    var tdC=document.createElement('td'); tdC.className='h-cnt'; tdC.textContent=items.length+' 种';
-    var tdOp=document.createElement('td'); tdOp.className='h-op';
-    var bt=document.createElement('button'); bt.className='h-btn'; bt.textContent='查看';
-    tdOp.appendChild(bt);
-    tr.appendChild(tdT); tr.appendChild(tdC); tr.appendChild(tdOp);
-    tbody.appendChild(tr);
-    tr.addEventListener('click', function(){ openHistory(h); });
-    bt.addEventListener('click', function(e){ e.stopPropagation(); openHistory(h); });
-    // 下拉明细行
-    var trd=document.createElement('tr'); trd.className='hist-detail';
-    var tdD=document.createElement('td'); tdD.setAttribute('colspan','3');
-    var wrap=document.createElement('div'); wrap.className='h-detail';
+    var cnt=document.createElement('span'); cnt.className='h-cnt'; cnt.textContent=items.length+' 种';
+    var bt=document.createElement('button'); bt.type='button'; bt.className='h-btn'; bt.textContent='查看';
+    head.appendChild(chev); head.appendChild(t); head.appendChild(cnt); head.appendChild(bt);
+    var det=document.createElement('div'); det.className='h-detail';
+    var wrap=document.createElement('div'); wrap.className='h-detail-in';
     items.forEach(function(it){
       var c=document.createElement('span'); c.className='chip h-chip'; c.textContent=it.name+(it.qty?(' '+it.qty):'');
       c.addEventListener('click', function(e){ e.stopPropagation(); openHistory(h); });
       wrap.appendChild(c);
     });
-    tdD.appendChild(wrap);
-    trd.appendChild(tdD);
-    tbody.appendChild(trd);
-    chev.addEventListener('click', function(e){
-      e.stopPropagation();
-      var open = trd.classList.toggle('open');
-      tr.classList.toggle('open', open);
+    det.appendChild(wrap);
+    main.appendChild(head); main.appendChild(det);
+    sw.appendChild(delBtn); sw.appendChild(main);
+    body.appendChild(sw);
+
+    chev.addEventListener('click', function(e){ e.stopPropagation(); det.classList.toggle('open'); });
+    bt.addEventListener('click', function(e){ e.stopPropagation(); openHistory(h); });
+    head.addEventListener('click', function(e){
+      if(e.target===bt || e.target===chev) return;
+      openHistory(h);
+    });
+
+    /* 左滑手势：滑出删除按钮 */
+    var startX=0, startY=0, dx=0, moved=false, open=false, suppressClick=false;
+    sw.addEventListener('touchstart', function(e){
+      var t=e.touches[0]; startX=t.clientX; startY=t.clientY; dx=0; moved=false; suppressClick=false;
+      main.style.transition='none';
+    }, {passive:true});
+    sw.addEventListener('touchmove', function(e){
+      var t=e.touches[0];
+      dx=t.clientX-startX; var dy=t.clientY-startY;
+      if(Math.abs(dx)>8 && Math.abs(dx)>Math.abs(dy)){
+        moved=true; suppressClick=true;
+      }
+      if(moved){
+        e.preventDefault();
+        var x = Math.max(-MAXW, Math.min(0, (open?-MAXW:0) + dx));
+        main.style.transform = 'translateX('+x+'px)';
+        sw.classList.toggle('sliding', moved);
+      }
+    }, {passive:false});
+    sw.addEventListener('touchend', function(){
+      main.style.transition='transform .25s ease';
+      if(moved){
+        open = dx < -30;
+        main.style.transform = open ? 'translateX(-'+MAXW+'px)' : 'translateX(0px)';
+        sw.classList.toggle('open', open);
+        sw.classList.remove('sliding');
+        moved=false;
+      }
+    });
+    /* 滑动后抑制触发跳转的 click */
+    sw.addEventListener('click', function(e){
+      if(suppressClick){ e.preventDefault(); e.stopPropagation(); suppressClick=false; }
+    }, true);
+
+    delBtn.addEventListener('click', function(){
+      var a = getHistory();
+      var i = a.indexOf(h);
+      if(i>-1){ a.splice(i,1); setJSON(keys.history, a); }
+      renderHistory(histEl, emptyMsg);
+      var st = document.getElementById('status');
+      if(st){ st.className='status done'; st.textContent='已删除该条历史记录'; }
     });
   });
-  tbl.appendChild(thead); tbl.appendChild(tbody);
-  histEl.innerHTML=''; histEl.appendChild(tbl);
 }
 /* 底部导航高亮 */
 function setTab(cur){
@@ -590,6 +639,7 @@ function initShow(){
   var islandCount = document.getElementById('islandCount');
   var metaEl = document.getElementById('meta');
   var resetBtn = document.getElementById('resetBtn');
+  var finishOv = document.getElementById('finishOv');
 
   var currentItems = getActive();
   var doneCount = 0;
@@ -606,6 +656,7 @@ function initShow(){
       islandText.textContent = (doneCount ? '已备好 '+doneCount+' 种' : '准备食材');
       islandCount.style.color=''; islandCount.style.background='';
     }
+    if(finishOv){ finishOv.hidden = !(total && doneCount>=total); }
   }
   function createRow(it, idx){
     var row=document.createElement('div'); row.className='row-item';
@@ -619,13 +670,9 @@ function initShow(){
     var box=document.createElement('div'); box.className='box'; box.textContent='✓';
     row.appendChild(name); row.appendChild(qWrap); row.appendChild(box);
     row.addEventListener('click', function(){
-      if(row.classList.contains('done')||row.classList.contains('pop')) return;
+      if(row.classList.contains('done')) return;
       row.classList.add('done');
       currentItems[idx].done=true; doneCount++; save(); updateIsland();
-      setTimeout(function(){
-        row.classList.add('pop');
-        setTimeout(function(){ row.remove(); save(); if(doneCount>=currentItems.length){ islandText.textContent='全部准备好了！'; islandCount.textContent=currentItems.length+'/'+currentItems.length; } }, 560);
-      }, 480);
     });
     listEl.appendChild(row);
   }
@@ -649,9 +696,14 @@ function initShow(){
     resetBtn.addEventListener('click', function(){
       currentItems.forEach(function(it){ it.done=false; });
       save(); build();
+      if(finishOv) finishOv.hidden = true;
       setStatus(statusEl,'已重置进度','done');
     });
   }
+  var fr=document.getElementById('finishReset');
+  if(fr){ fr.addEventListener('click', function(){ if(resetBtn) resetBtn.click(); }); }
+  var fh=document.getElementById('finishHome');
+  if(fh){ fh.addEventListener('click', function(){ location.href='index.html'; }); }
   build();
   if(!currentItems.length){ setStatus(statusEl,'请先在「生成页」生成食材清单',''); }
   setTab('show');
