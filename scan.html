@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1226">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>识别食材 · 食材流体云</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="ht">
+      <h1>识别页面</h1>
+      <p class="sub">拍照 / 相册选图 → 提取食材</p>
+    </div>
+  </header>
+
+  <!-- 步骤条 -->
+  <div class="steps">
+    <div class="step active"><span class="dot">1</span>识别</div>
+    <div class="step-line"></div>
+    <div class="step"><span class="dot">2</span>生成</div>
+    <div class="step-line"></div>
+    <div class="step"><span class="dot">3</span>展示</div>
+  </div>
+
+  <!-- 获取食材 -->
+  <div class="card">
+    <h2>① 拍照 / 选图识别</h2>
+    <div class="row">
+      <label class="btn">
+        <span class="ico">📷</span><span>拍照识别</span>
+        <input type="file" accept="image/*" capture="environment" id="camera-input">
+      </label>
+      <label class="btn">
+        <span class="ico">🖼️</span><span>从相册选图</span>
+        <input type="file" accept="image/*" id="gallery-input">
+      </label>
+    </div>
+    <div id="preview"></div>
+    <div class="status" id="status">支持食谱、采购单、手写清单截图，自动识别并提取食材。</div>
+  </div>
+
+  <!-- 识别结果 -->
+  <div class="card">
+    <h2>② 识别结果 <span id="counters" style="color:var(--accent2);"></span></h2>
+    <div class="tags" id="tags"><p class="hint" style="margin:0;">暂无，识别后自动出现在这里（可点 × 删除）</p></div>
+    <div class="foot-actions">
+      <button class="big-btn" id="nextBtn" disabled>去生成清单 ›</button>
+    </div>
+  </div>
+
+  <!-- 历史 -->
+  <div class="card">
+    <h2>③ 历史记录</h2>
+    <div id="history"></div>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<nav class="tabbar"><div class="tb-in">
+  <a data-tab="home" href="index.html"><span class="ti">🏠</span>首页</a>
+  <a data-tab="scan" href="scan.html"><span class="ti">📷</span>识别</a>
+  <a data-tab="edit" href="edit.html"><span class="ti">✏️</span>生成</a>
+  <a data-tab="show" href="show.html"><span class="ti">🌀</span>展示</a>
+</div></nav>
+
+<!-- OCR 库（本地优先，失败自动切备用源） -->
+<script src="lib/tesseract.min.js"></script>
+<script src="app.js"></script>
+<script>FC.initScan();</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
