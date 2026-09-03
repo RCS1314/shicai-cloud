@@ -239,3 +239,29 @@ input[type=file]{display:none;}
 @media (prefers-reduced-motion: reduce){
   .tabbar,.tabbar a,.tabbar a.on,.tabbar a.on::after,.wrap>*{animation:none !important;transition:none !important;}
 }
+
+/* ============ v6：历史记录下拉表格 / 名称编辑 / 新增按钮 ============ */
+.hist-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.hist-tbl th{text-align:left;color:var(--sub);font-weight:600;font-size:11px;padding:4px 6px;border-bottom:1px solid var(--line);}
+.hist-tbl .h-cnt-h{width:56px;text-align:center;}
+.hist-tbl .h-op{width:64px;text-align:right;}
+.hist-row td{padding:9px 6px;border-bottom:1px dashed rgba(224,194,132,.45);cursor:pointer;transition:background .2s;}
+.hist-row:hover td{background:rgba(255,248,232,.7);}
+.hist-row.open td{border-bottom:none;}
+.h-chev{display:inline-block;width:18px;color:var(--sub);transition:transform .22s;font-size:10px;}
+.hist-row.open .h-chev{transform:rotate(180deg);color:var(--accent);}
+.h-time{font-weight:600;color:#7A6A44;}
+.h-cnt{text-align:center;color:var(--sub);}
+.h-btn{background:rgba(255,255,255,.75);border:1px solid var(--line);color:#E89B2E;border-radius:9px;padding:3px 11px;font-size:12px;cursor:pointer;transition:.2s;}
+.h-btn:active{transform:scale(.96);}
+.hist-detail{display:none;}
+.hist-detail td{padding:2px 6px 10px;}
+.hist-detail.open{display:table-row;}
+.h-detail{display:flex;flex-wrap:wrap;gap:6px;background:rgba(255,248,232,.65);border-radius:12px;padding:9px;}
+.h-chip{cursor:pointer;margin:0;transition:transform .15s;}
+.h-chip:active{transform:scale(.95);}
+.e-name-inp{width:100%;min-width:76px;background:transparent;border:none;border-bottom:1.5px dashed rgba(124,108,101,.35);color:#5A4B28;font-weight:700;font-size:14.5px;padding:2px 2px 4px;outline:none;font-family:inherit;}
+.e-name-inp:focus{border-color:var(--accent);}
+.add-row-btn{display:block;width:100%;margin-top:10px;padding:11px;border:1.5px dashed rgba(240,178,72,.65);background:rgba(255,255,255,.55);color:#B7791F;border-radius:12px;font-size:13.5px;cursor:pointer;text-align:center;transition:.2s;font-family:inherit;}
+.add-row-btn:hover{background:rgba(255,255,255,.85);color:#E89B2E;}
+.add-row-btn:active{transform:scale(.98);}
