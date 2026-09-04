@@ -2,7 +2,7 @@
    策略：网络优先（NETWORK FIRST）——只要联网就拉取服务器最新文件；
    网络不可用时回退缓存，保证离线可用。
    每次发布新版请同步递增 CACHE 版本号，旧缓存会自动清理。 */
-const CACHE = 'foodcloud-v10';
+const CACHE = 'foodcloud-v11';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
