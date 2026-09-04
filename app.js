@@ -566,6 +566,7 @@ function initEdit(){
   var listWrap = document.getElementById('editList');
   var countEl = document.getElementById('count');
   var genBtn = document.getElementById('generateBtn');
+  var pvEl = document.getElementById('pvList');
 
   var candidates = getCandidates();
   var items = [];   // 编辑中的清单 [{name,qty,weight}]
@@ -618,6 +619,43 @@ function initEdit(){
     });
     if(countEl) countEl.textContent = items.length;
     if(genBtn) genBtn.disabled = !items.length;
+    renderPreview();
+  }
+  /* 产物视图：只读展示生成的清单（默认视图） */
+  function renderPreview(){
+    if(!pvEl) return;
+    pvEl.innerHTML='';
+    var valid = items.filter(function(it){ return it.name; });
+    var lm = listNameEl();
+    var nmEl=document.getElementById('pvName');
+    var catEl=document.getElementById('pvCat');
+    var cntEl=document.getElementById('pvCount');
+    var g2=document.getElementById('generateBtn2');
+    if(nmEl) nmEl.textContent = (lm && lm.value.trim()) ? lm.value.trim() : autoName(items);
+    if(catEl){ if(catSel){ catEl.style.display=''; catEl.textContent=catSel; } else catEl.style.display='none'; }
+    if(cntEl) cntEl.textContent=valid.length+' 种';
+    if(g2) g2.disabled=!valid.length;
+    valid.forEach(function(it){
+      var row=document.createElement('div'); row.className='pv-item';
+      var n=document.createElement('span'); n.className='pv-i-name'; n.textContent=it.name;
+      var q=document.createElement('span'); q.className='pv-i-qty'; q.textContent=it.qty||'';
+      row.appendChild(n); row.appendChild(q); pvEl.appendChild(row);
+    });
+    if(!valid.length) pvEl.innerHTML='<p class="hint" style="text-align:center;padding:18px 0;">暂无食材</p>';
+  }
+  /* 视图切换：默认产物视图；编辑视图仅在点「✏️ 编辑」后显示 */
+  function showPreview(){
+    var pv=document.getElementById('previewView'), ev=document.getElementById('editView');
+    if(pv) pv.style.display='block';
+    if(ev) ev.style.display='none';
+    renderPreview();
+    if(statusEl) statusEl.textContent='';
+  }
+  function showEdit(){
+    var pv=document.getElementById('previewView'), ev=document.getElementById('editView');
+    if(pv) pv.style.display='none';
+    if(ev) ev.style.display='block';
+    if(statusEl) statusEl.textContent='';
   }
   function toText(){
     return items.map(function(it){ return it.name + (it.qty?(' '+it.qty):''); }).join('、');
@@ -676,20 +714,25 @@ function initEdit(){
   });
   function listNameEl(){ return document.getElementById('listName'); }
 
-  if(genBtn){
-    genBtn.addEventListener('click', function(){
-      if(!items.length){ setStatus(statusEl,'请先添加食材','err'); return; }
-      var finalItems = items.filter(function(it){ return it.name; }).map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0, done:false}; });
-      if(!finalItems.length){ setStatus(statusEl,'请先添加食材','err'); return; }
-      var lm=listNameEl();
-      var listName = (lm && lm.value.trim()) ? lm.value.trim() : autoName(finalItems);
-      setActive(finalItems);
-      setMeta({name:listName, cat:catSel});
-      addHistory(finalItems, listName, catSel);
-      setCandidates([]); // 清除候选，避免下次重复
-      location.href='show.html';
-    });
+  function gen(){
+    if(!items.length){ setStatus(statusEl,'请先添加食材','err'); return; }
+    var finalItems = items.filter(function(it){ return it.name; }).map(function(it){ return {name:it.name, qty:it.qty, weight:it.weight||0, done:false}; });
+    if(!finalItems.length){ setStatus(statusEl,'请先添加食材','err'); return; }
+    var lm=listNameEl();
+    var listName = (lm && lm.value.trim()) ? lm.value.trim() : autoName(finalItems);
+    setActive(finalItems);
+    setMeta({name:listName, cat:catSel});
+    addHistory(finalItems, listName, catSel);
+    setCandidates([]); // 清除候选，避免下次重复
+    location.href='show.html';
   }
+  if(genBtn) genBtn.addEventListener('click', gen);
+  var genBtn2=document.getElementById('generateBtn2');
+  if(genBtn2) genBtn2.addEventListener('click', gen);
+  var editBtn=document.getElementById('editBtn');
+  if(editBtn) editBtn.addEventListener('click', showEdit);
+  var doneBtn=document.getElementById('doneEditBtn');
+  if(doneBtn) doneBtn.addEventListener('click', showPreview);
 
   // 初始化：预填候选
   if(candidates.length){
@@ -703,6 +746,8 @@ function initEdit(){
     refreshList();
   }
   setTab('edit');
+  /* 默认展示产物视图；无产物时进入编辑视图 */
+  if(items.length){ showPreview(); } else { showEdit(); }
 }
 
 /* ==================================================================
